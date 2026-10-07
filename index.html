@@ -72,43 +72,58 @@ function $(i){return document.getElementById(i)}
 function fmt(n){return n.toLocaleString("en-US")}
 function now(){return Date.now()+off}
 function sec(t){return Math.max(0,Math.ceil((t-now())/1000))}
-function clock(t){return "0"+Math.floor(t/60)+":"+(t%60<10?"0":"")+t%60}
+function clock(t){var h=Math.floor(t/3600),m=Math.floor(t%3600/60),x=t%60;return(h?h+":":"")+(m<10?"0":"")+m+":"+(x<10?"0":"")+x}
 function post(p,b){b.id=id;return fetch(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).catch(function(){})}
 var es=new EventSource("/events?id="+id);
 es.onmessage=function(e){s=JSON.parse(e.data);off=s.now-Date.now();render()};
-function rname(){var r=s.R-s.ri;return r===1?"FINAL":r===2?"SEMI-FINAL":r===3?"QUARTER-FINAL":"ROUND "+(s.ri+1)+" OF "+s.R}
+function rname(){var b=s.b,r=b.R-b.ri,g=b.kind==="final"?"FINAL · ":"GROUP "+b.idx+" · ";return g+(r===1?"FINAL ROUND":r===2?"SEMI-FINAL":r===3?"QUARTER-FINAL":"ROUND "+(b.ri+1)+" OF "+b.R)}
 function msgOf(m){var L=m.last;if(!L)return["","PICK YOUR THROW."];
  if(!L.me&&!L.op)return["","NO ONE PICKED. THROW AGAIN."];
  if(L.r===0)return["","TIE. THROW AGAIN."];
  if(!L.me)return["l","TIME UP! POINT TO "+m.opp+"."];
  if(!L.op)return["w",m.opp+" TIMED OUT. POINT TO YOU!"];
  return L.r>0?["w",L.me.toUpperCase()+" BEATS "+L.op.toUpperCase()+". POINT TO YOU!"]:["l",L.op.toUpperCase()+" BEATS "+L.me.toUpperCase()+". POINT TO "+m.opp+"."]}
-function screen(){var m=s.m,me=s.me;
+function screen(){var m=s.m,me=s.me,b=s.b;
  if(s.ph==="lobby"){
   if(!me)return["l0",'<h1>LOGIN</h1><div class="info" id="info"></div><div class="pillw"><input id="u" maxlength="12" autocomplete="off" placeholder="username" aria-label="username"></div><button class="btn" id="join">JOIN TOURNAMENT</button>'];
   return["l1",'<h1>YOU\'RE IN</h1><div class="info" id="info"></div><div class="c"><div class="lbl">YOUR PLAYER NUMBER</div><div class="big t">#'+me.num+'</div>WELCOME, '+me.name+'.<br>WAIT FOR THE START.</div>']}
  if(s.ph==="over"){var w=s.champMe;
   return["o"+(w?1:0),'<div class="c"><div class="lbl">'+(w?"YOU WIN":"CHAMPION")+'</div><div class="big">'+(w?"+"+fmt(s.pool)+"¢":s.champ)+'</div><p>'+(w?"THE WHOLE PRIZE POOL IS YOURS.":"PRIZE: "+fmt(s.pool)+"¢")+'<br>NEXT TOURNAMENT OPENS SOON.</p></div>']}
- if(!me||me.out)return["x"+s.ri+s.ph,'<div class="lbl c">'+(me?"YOU ARE OUT IN ROUND "+me.out:"TOURNAMENT IN PROGRESS")+'</div><h1 style="margin-top:14px">'+(me?"OUT":"LIVE")+'</h1><div class="info"><div class="lbl">'+rname()+'</div><div class="lbl">PLAYERS LEFT</div><div class="big">'+fmt(s.left)+'</div><div class="lbl">PRIZE POOL '+fmt(s.pool)+'¢</div></div>'];
- if(s.ph==="wait")return["w"+s.ri,'<div class="lbl c">ROUND '+(s.ri+1)+' OF '+s.R+' COMPLETE</div><h1 style="margin-top:14px">WAIT</h1><div class="info"><div class="lbl">NEXT ROUND IN</div><div class="big t" id="wt"></div><div class="lbl">PLAYERS LEFT</div><div class="big">'+fmt(s.left)+'</div><div class="lbl">YOU ARE THROUGH · SEAT #'+fmt(me.seat)+'</div></div>'];
+ var prog='<div class="lbl">GROUPS FINISHED '+s.hd+' OF '+s.H+'</div>';
+ if(!me||!b)return["s"+s.hd,'<h1>LIVE</h1><div class="info"><div class="lbl">REGISTRATION IS CLOSED</div><div class="lbl">NEXT TOURNAMENT OPENS AFTER THIS ONE</div><div class="big">'+fmt(s.count)+'</div><div class="lbl">PLAYERS · PRIZE '+fmt(s.pool)+'¢</div>'+prog+'</div>'];
+ if(me.out)return["x"+s.hd+"|"+me.out,'<div class="lbl c">YOU ARE OUT IN ROUND '+me.out+'</div><h1 style="margin-top:14px">OUT</h1><div class="info"><div class="lbl">PRIZE POOL</div><div class="big">'+fmt(s.pool)+'¢</div>'+prog+'</div>'];
+ if(b.ph==="sched")return["k"+b.kind+b.idx,'<div class="lbl c">'+(b.kind==="final"?"YOU MADE THE FINAL!":"YOUR GROUP: #"+b.idx+" OF "+s.H)+'</div><h1 style="margin-top:14px">'+(b.kind==="final"?"FINAL":"SOON")+'</h1><div class="info"><div class="lbl">STARTS IN</div><div class="big t" id="st"></div><div class="lbl">YOUR SEAT #'+fmt(me.seat)+' · '+b.size+' PLAYERS</div><div class="lbl">STAY ON THIS PAGE</div></div>'];
+ if(b.ph==="done")return["d"+s.hd,'<div class="lbl c">GROUP '+b.idx+' WON!</div><h1 style="margin-top:14px">WAIT</h1><div class="info"><div class="lbl">THE FINAL STARTS WHEN ALL GROUPS FINISH</div>'+prog+'</div>'];
+ if(b.ph==="wait")return["w"+b.ri+b.kind,'<div class="lbl c">'+rname()+' COMPLETE</div><h1 style="margin-top:14px">WAIT</h1><div class="info"><div class="lbl">NEXT ROUND IN</div><div class="big t" id="wt"></div><div class="lbl">PLAYERS LEFT IN GROUP</div><div class="big">'+fmt(b.left)+'</div><div class="lbl">YOU ARE THROUGH · SEAT #'+fmt(me.seat)+'</div></div>'];
  if(m){var mm=msgOf(m);
-  return["m"+s.ri+"|"+m.th+"|"+m.moved+"|"+m.ys+"|"+m.ops,'<div class="lbl c">'+rname()+' · '+fmt(s.left)+' LEFT · BEST OF 5 · PRIZE '+fmt(s.pool)+'¢</div>'
+  return["m"+b.ri+b.kind+"|"+m.th+"|"+m.moved+"|"+m.ys+"|"+m.ops,'<div class="lbl c">'+rname()+' · '+fmt(b.left)+' LEFT · BEST OF 5</div>'
   +'<div class="vs"><div>'+me.name+'<div class="lbl">SEAT #'+fmt(me.seat)+'</div></div><div class="score">'+m.ys+'-'+m.ops+'</div><div>'+m.opp+'<div class="lbl">SEAT #'+fmt(m.os)+'</div></div></div>'
   +'<div class="c">'+(m.moved?'WAITING FOR '+m.opp+'...':'PICK IN <span id="tm"></span>s OR LOSE THE POINT')+'</div><div class="tbar"><i id="bar" style="animation:none;width:100%"></i></div><div class="moves">'
   +["rock","paper","scissors"].map(function(x){return'<button class="move" data-m="'+x+'"'+(m.moved?' disabled':'')+'>'+icon(x,6)+x.toUpperCase()+'</button>'}).join("")
   +'</div><div class="msg '+mm[0]+'">'+mm[1]+'</div>']}
- return["a"+s.ri,'<div class="lbl c">'+rname()+' · SEAT #'+fmt(me.seat)+'</div><div class="big c t" style="margin-top:20px">'+(s.bye?"BYE":"WAIT")+'</div><p class="c">'+(s.bye?"NO OPPONENT. YOU ADVANCE.":"YOUR MATCH IS DONE.")+'<br>WAITING FOR OTHER MATCHES.</p>']}
+ return["a"+b.ri+b.kind,'<div class="lbl c">'+rname()+' · SEAT #'+fmt(me.seat)+'</div><div class="big c t" style="margin-top:20px">'+(s.bye?"BYE":"WAIT")+'</div><p class="c">'+(s.bye?"NO OPPONENT. YOU ADVANCE.":"YOUR MATCH IS DONE.")+'<br>WAITING FOR OTHER MATCHES.</p>']}
 function paint(){if(!s)return;var e=$("info");
- if(e&&s.ph==="lobby")e.innerHTML=(s.startsAt?'<div class="lbl">STARTS IN</div><div class="big t">'+clock(sec(s.startsAt))+'</div>':'<div class="lbl">COUNTDOWN STARTS WHEN</div><div class="big t" style="font-size:22px">1ST PLAYER JOINS</div>')
-  +'<div class="lbl">PRIZE POOL</div><div class="big">'+fmt(s.count)+'¢</div><div class="lbl">'+fmt(s.count)+' PLAYERS · +1¢ PER PLAYER · FREE ENTRY</div><div class="lbl">EMPTY SEATS FILL WITH BOTS (MIN '+s.min+')</div>';
+ if(e&&s.ph==="lobby")e.innerHTML=(s.startsAt?'<div class="lbl">REGISTRATION CLOSES IN</div><div class="big t">'+clock(sec(s.startsAt))+'</div>':'<div class="lbl">COUNTDOWN STARTS WHEN</div><div class="big t" style="font-size:22px">1ST PLAYER JOINS</div>')
+  +'<div class="lbl">PRIZE POOL</div><div class="big">'+fmt(s.count)+'¢</div><div class="lbl">'+fmt(s.count)+' PLAYERS · +1¢ PER PLAYER · FREE ENTRY</div><div class="lbl">GROUPS OF '+s.hs+' · WINNERS MEET IN THE FINAL</div>';
  e=$("tm");if(e&&s.m){var t=sec(s.m.dl);e.textContent=t;e.className=t<=1?"low":""}
  e=$("bar");if(e&&s.m)e.style.width=Math.max(0,Math.min(100,(s.m.dl-now())/(s.tm/100)))+"%";
- e=$("wt");if(e)e.textContent=clock(sec(s.wu))}
+ e=$("wt");if(e)e.textContent=clock(sec(s.b.wu));
+ e=$("st");if(e)e.textContent=clock(sec(s.b.sa))}
 function render(){var sc=screen();if(sc[0]!==key){key=sc[0];$("view").innerHTML=sc[1];bind()}paint()}
+var AC;
+function sfx(m){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();var t=AC.currentTime;
+ function env(g,t0,pk,dur){g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(pk,t0+0.005);g.gain.exponentialRampToValueAtTime(0.0001,t0+dur)}
+ function noise(t0,dur,type,f,pk){var n=Math.floor(AC.sampleRate*dur),b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);for(var i=0;i<n;i++)d[i]=Math.random()*2-1;
+  var src=AC.createBufferSource();src.buffer=b;var fl=AC.createBiquadFilter();fl.type=type;fl.frequency.value=f;var g=AC.createGain();env(g,t0,pk,dur);src.connect(fl);fl.connect(g);g.connect(AC.destination);src.start(t0)}
+ function tone(t0,type,f0,f1,dur,pk){var o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f0,t0);o.frequency.exponentialRampToValueAtTime(f1,t0+dur);env(g,t0,pk,dur);o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+dur+.02)}
+ if(m==="paper"){noise(t,.14,"highpass",2500,.5);noise(t+.1,.18,"bandpass",4000,.4);noise(t+.22,.12,"highpass",3000,.25)}   // paper rustle
+ else if(m==="rock"){tone(t,"sine",150,40,.22,1);noise(t,.08,"lowpass",500,.7)}                                       // rock thud
+ else{[0,.13].forEach(function(o){noise(t+o,.07,"highpass",6000,.5);tone(t+o,"square",3300,2400,.06,.12);tone(t+o,"square",4700,3600,.06,.08)})} // scissors snip-snip
+}catch(e){}}
 function bind(){var j=$("join"),u=$("u");
  if(j)j.onclick=function(){post("/join",{name:u.value})};
  if(u)u.onkeydown=function(e){if(e.key==="Enter")j.click()};
- [].forEach.call(document.querySelectorAll(".move"),function(b){b.onclick=function(){post("/move",{move:b.dataset.m})}})}
+ [].forEach.call(document.querySelectorAll(".move"),function(b){b.onclick=function(){sfx(b.dataset.m);post("/move",{move:b.dataset.m})}})}
 setInterval(paint,150);
 </script>
 </body>
