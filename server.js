@@ -1,8 +1,8 @@
-// RPS Kickoff - online server with groups (heats) + final. No packages needed, just Node 18+.
+// RPS Kickoff - online server: one knockout bracket for everyone. No packages needed, just Node 18+.
 const http=require("http"),fs=require("fs"),path=require("path");
 const E=process.env,N=(k,d)=>+E[k]||d;
 const PORT=N("PORT",3000),EVERY=N("EVERY_MS",3600000),MIN_REG=N("MIN_REG_MS",300000),TURN_MS=N("TURN_MS",7000),WAIT_MS=N("WAIT_MS",5000),MIN=N("MIN_PLAYERS",8),
- HEAT=N("HEAT_SIZE",100),WAVE=N("WAVE_HEATS",20),WAVE_MS=N("WAVE_MS",600000),FIRST_MS=N("FIRST_MS",20000),FINAL_MS=N("FINAL_WAIT_MS",60000),OVER_MS=N("OVER_MS",30000),NEED=3;
+ FIRST_MS=N("FIRST_MS",20000),OVER_MS=N("OVER_MS",30000),NEED=3;
 const BOTN=["NOVA","ROCKY","PAPER","BLADE","PIXEL","ZERO","BYTE","STONE","SNIP","ACE","KING","TURBO","ECHO","MIKA"];
 const MV=["rock","paper","scissors"],BEATS={rock:"scissors",paper:"rock",scissors:"paper"};
 const rnd=n=>Math.floor(Math.random()*n);
@@ -10,7 +10,7 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[
 // next start time: a round clock time (every hour on the hour), at least MIN_REG ms away
 function nextSlot(from){return Math.ceil((from+MIN_REG)/EVERY)*EVERY}
 const clients=new Map(),PRE=new Map();let T;  // PRE = people waiting for the next tournament
-function reset(){T={ph:"lobby",startsAt:nextSlot(Date.now()),players:new Map(),names:new Set(),heats:[],final:null,mOf:{},champ:null,overAt:0,pool:0,nb:0,hd:0}}
+function reset(){T={ph:"lobby",startsAt:nextSlot(Date.now()),players:new Map(),names:new Set(),main:null,mOf:{},champ:null,overAt:0,pool:0,nb:0}}
 reset();
 const isBot=x=>T.players.get(x).bot;
 function addBot(){let n;do{n=BOTN[rnd(BOTN.length)]+"_"+(1+rnd(99999))}while(T.names.has(n));const id="bot"+(++T.nb);T.names.add(n);T.players.set(id,{id,name:n,bot:true,num:T.players.size+1,b:null})}
@@ -20,7 +20,7 @@ function join(id,name){name=String(name||"").toUpperCase().replace(/[^A-Z0-9_]/g
  if(T.names.has(name))name=name.slice(0,9)+"_"+(1+rnd(99));
  T.names.add(name);T.players.set(id,{id,name,bot:false,num:T.players.size+1,b:null});
  return"ok"}
-// a bracket = one group (heat) or the final
+// the bracket: everyone who registered plays one knockout tournament
 function mkB(kind,idx,ids,startAt){let P=2;while(P<ids.length)P*=2;
  const nulls=P-ids.length,slots=[];let k=0;
  for(let i=0;i<P/2;i++){slots.push(ids[k++]);slots.push(i<nulls?null:ids[k++])}
@@ -28,9 +28,7 @@ function mkB(kind,idx,ids,startAt){let P=2;while(P<ids.length)P*=2;
  return{kind,idx,ids,startAt,ph:"sched",rounds:[slots],R:Math.round(Math.log2(P)),ri:0,seat,ms:[],next:[],bye:{},out:{},wu:0,winner:null,alive:0,size:ids.length}}
 function startAll(){while(T.players.size<MIN)addBot();
  const ids=shuffle([...T.players.keys()]),n=ids.length;T.pool=n;
- const H=Math.ceil(n/HEAT),sz=Math.ceil(n/H),t0=Date.now()+FIRST_MS;
- for(let k=0;k<H;k++){const part=ids.slice(k*sz,(k+1)*sz);if(!part.length)continue;const i=T.heats.length;
-  const B=mkB("heat",i+1,part,t0+Math.floor(i/WAVE)*WAVE_MS);T.heats.push(B);part.forEach(x=>T.players.get(x).b=B)}
+ const B=mkB("main",1,ids,Date.now()+FIRST_MS);T.main=B;ids.forEach(x=>T.players.get(x).b=B);
  T.ph="run";pushAll()}
 function startRound(B){B.ph="round";const cur=B.rounds[B.ri];B.ms=[];B.next=[];B.bye={};B.alive=cur.filter(Boolean).length;
  for(let i=0;i<cur.length;i+=2){const a=cur[i],b=cur[i+1],ix=i/2;
@@ -52,14 +50,9 @@ function endRound(B){B.rounds.push(B.next);
  if(B.next.length===1){B.winner=B.next[0];B.ph="done";done(B)}
  else if(!B.ms.length){B.ri++;startRound(B)}   // nobody to wait for: go on at once
  else{B.ph="wait";B.wu=Date.now()+WAIT_MS;pushB(B)}}
-function done(B){
- if(B.kind==="final"){finish(B.winner);return}
- T.hd++;pushB(B);
- if(T.heats.every(h=>h.ph==="done")){const ids=T.heats.map(h=>h.winner);
-  if(ids.length===1)finish(ids[0]);
-  else{const F=mkB("final",0,shuffle(ids),Date.now()+FINAL_MS);T.final=F;ids.forEach(x=>T.players.get(x).b=F);pushAll()}}}
+function done(B){finish(B.winner)}
 function finish(id){T.ph="over";T.champ=id;T.overAt=Date.now()+OVER_MS;pushAll()}
-function view(id){const p=T.players.get(id),v={ph:T.ph,now:Date.now(),startsAt:T.startsAt,count:T.players.size,pool:T.pool||T.players.size,min:MIN,tm:TURN_MS,H:T.heats.length,hd:T.hd,hs:HEAT,ev:EVERY,q:PRE.has(id)};
+function view(id){const p=T.players.get(id),v={ph:T.ph,now:Date.now(),startsAt:T.startsAt,count:T.players.size,pool:T.pool||T.players.size,min:MIN,tm:TURN_MS,left:T.main?T.main.alive:0,ev:EVERY,q:PRE.has(id)};
  if(p){v.me={name:p.name,num:p.num,seat:0,out:0,won:false};const B=p.b;
   if(B){v.b={kind:B.kind,idx:B.idx,ph:B.ph,sa:B.startAt,ri:B.ri,R:B.R,wu:B.wu,left:B.alive,size:B.size};
    v.me.seat=B.seat[id]||0;v.me.out=B.out[id]||0;v.me.won=B.winner===id;
@@ -78,7 +71,7 @@ function active(id){if(T.ph==="lobby")return true;const p=T.players.get(id),B=p&
 let l1=0,l5=0;
 setInterval(()=>{const n=Date.now();
  if(T.ph==="lobby"){if(n>=T.startsAt){if(T.players.size)startAll();else T.startsAt=nextSlot(n)}}  // nobody registered: skip this slot
- else if(T.ph==="run"){const bs=T.final&&T.final.ph!=="done"?[T.final]:T.heats.filter(h=>h.ph!=="done");
+ else if(T.ph==="run"){const bs=T.main&&T.main.ph!=="done"?[T.main]:[];
   for(const B of bs){
    if(B.ph==="sched"){if(n>=B.startAt)startRound(B)}
    else if(B.ph==="round"){for(const m of B.ms)if(!m.done&&n>=m.dl)resolve(m)}

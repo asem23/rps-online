@@ -107,7 +107,7 @@ function showAuth(mode){key="auth"+mode;var reg=mode==="reg";
  $("agu").onclick=function(){run("/api/guest",{},this)};
  $("ago").onclick=go;$("asw").onclick=function(){showAuth(reg?"login":"reg")};
  [].forEach.call($("view").querySelectorAll("input"),function(i){i.onkeydown=function(e){if(e.key==="Enter")go()}})}
-function rname(){var b=s.b,r=b.R-b.ri,g=b.kind==="final"?"FINAL · ":"GROUP "+b.idx+" · ";return g+(r===1?"FINAL ROUND":r===2?"SEMI-FINAL":r===3?"QUARTER-FINAL":"ROUND "+(b.ri+1)+" OF "+b.R)}
+function rname(){var b=s.b,r=b.R-b.ri;return r===1?"FINAL":r===2?"SEMI-FINAL":r===3?"QUARTER-FINAL":"ROUND "+(b.ri+1)+" OF "+b.R}
 function msgOf(m){var L=m.last;if(!L)return["","PICK YOUR THROW."];
  if(!L.me&&!L.op)return["","NO ONE PICKED. THROW AGAIN."];
  if(L.r===0)return["","TIE. THROW AGAIN."];
@@ -122,13 +122,12 @@ function screen(){var m=s.m,me=s.me,b=s.b;
   if(w)return["o1",'<div class="huge grn">YOU<br>WIN!</div><div class="c"><div class="lbl">YOU ARE THE CHAMPION!</div><p>NEXT TOURNAMENT OPENS SOON.</p></div>'];
   if(lost)return["oL",'<div class="huge red">GAME<br>OVER</div><div class="c"><div class="lbl">YOU WERE OUT IN ROUND '+me.out+'</div><div class="lbl" style="margin-top:12px">CHAMPION</div><div class="big">'+s.champ+'</div><p>NEXT TOURNAMENT OPENS SOON.</p></div>'];
   return["o0",'<div class="c"><div class="lbl">CHAMPION</div><div class="big">'+s.champ+'</div><p>NEXT TOURNAMENT OPENS SOON.</p></div>']}
- var prog='<div class="lbl">GROUPS FINISHED '+s.hd+' OF '+s.H+'</div>';
+ var prog='<div class="lbl" id="prog"></div>';
  if(!me||!b){if(s.q)return["sq1",'<h1>QUEUED</h1><div class="info"><div class="lbl">YOU ARE IN THE NEXT TOURNAMENT</div><div class="lbl">IT OPENS WHEN THIS ONE ENDS</div><div class="lbl">STAY ON THIS PAGE</div><div class="lbl" id="prog"></div></div>'];
   return["sq0",'<h1>LIVE</h1><div class="info"><div class="lbl">REGISTRATION IS CLOSED</div><div class="big">'+fmt(s.count)+'</div><div class="lbl">PLAYERS</div><div class="lbl" id="prog"></div></div><button class="btn" id="join">JOIN NEXT TOURNAMENT</button><div class="msg l" id="err"></div>']}
- if(me.out)return["x"+s.hd+"|"+me.out,'<div class="huge red">GAME<br>OVER</div><div class="lbl c">YOU ARE OUT IN ROUND '+me.out+'</div><div class="info" style="margin-top:14px"><div class="lbl">PLAYERS</div><div class="big">'+fmt(s.count)+'</div>'+prog+'</div>'];
- if(b.ph==="sched")return["k"+b.kind+b.idx,'<div class="lbl c">'+(b.kind==="final"?"YOU MADE THE FINAL!":"YOUR GROUP: #"+b.idx+" OF "+s.H)+'</div><h1 style="margin-top:14px">'+(b.kind==="final"?"FINAL":"SOON")+'</h1><div class="info"><div class="lbl">STARTS IN</div><div class="big t" id="st"></div><div class="lbl">YOUR SEAT #'+fmt(me.seat)+' · '+b.size+' PLAYERS</div><div class="lbl">STAY ON THIS PAGE</div></div>'];
- if(b.ph==="done")return["d"+s.hd,'<div class="lbl c">GROUP '+b.idx+' WON!</div><h1 style="margin-top:14px">WAIT</h1><div class="info"><div class="lbl">THE FINAL STARTS WHEN ALL GROUPS FINISH</div>'+prog+'</div>'];
- if(b.ph==="wait")return["w"+b.ri+b.kind,'<div class="lbl c">'+rname()+' COMPLETE</div><h1 style="margin-top:14px">WAIT</h1><div class="info"><div class="lbl">NEXT ROUND IN</div><div class="big t" id="wt"></div><div class="lbl">PLAYERS LEFT IN GROUP</div><div class="big">'+fmt(b.left)+'</div><div class="lbl">YOU ARE THROUGH · SEAT #'+fmt(me.seat)+'</div></div>'];
+ if(me.out)return["x"+me.out,'<div class="huge red">GAME<br>OVER</div><div class="lbl c">YOU ARE OUT IN ROUND '+me.out+'</div><div class="info" style="margin-top:14px"><div class="lbl">PLAYERS</div><div class="big">'+fmt(s.count)+'</div>'+prog+'</div>'];
+ if(b.ph==="sched")return["k",'<div class="lbl c">YOU ARE IN!</div><h1 style="margin-top:14px">SOON</h1><div class="info"><div class="lbl">STARTS IN</div><div class="big t" id="st"></div><div class="lbl">YOUR SEAT #'+fmt(me.seat)+' · '+fmt(b.size)+' PLAYERS</div><div class="lbl">STAY ON THIS PAGE</div></div>'];
+ if(b.ph==="wait")return["w"+b.ri+b.kind,'<div class="lbl c">'+rname()+' COMPLETE</div><h1 style="margin-top:14px">WAIT</h1><div class="info"><div class="lbl">NEXT ROUND IN</div><div class="big t" id="wt"></div><div class="lbl">PLAYERS LEFT</div><div class="big">'+fmt(b.left)+'</div><div class="lbl">YOU ARE THROUGH · SEAT #'+fmt(me.seat)+'</div></div>'];
  if(m){var mm=msgOf(m);
   return["m"+b.ri+b.kind+"|"+m.th+"|"+m.moved+"|"+m.ys+"|"+m.ops,'<div class="lbl c">'+rname()+' · '+fmt(b.left)+' LEFT · BEST OF 5</div>'
   +'<div class="vs"><div>'+me.name+'<div class="lbl">SEAT #'+fmt(me.seat)+'</div></div><div class="score">'+m.ys+'-'+m.ops+'</div><div>'+m.opp+'<div class="lbl">SEAT #'+fmt(m.os)+'</div></div></div>'
@@ -138,11 +137,11 @@ function screen(){var m=s.m,me=s.me,b=s.b;
  return["a"+b.ri+b.kind,'<div class="lbl c">'+rname()+' · SEAT #'+fmt(me.seat)+'</div><div class="big c t" style="margin-top:20px">'+(s.bye?"BYE":"WAIT")+'</div><p class="c">'+(s.bye?"NO OPPONENT. YOU ADVANCE.":"YOUR MATCH IS DONE.")+'<br>WAITING FOR OTHER MATCHES.</p>']}
 function paint(){if(!s)return;var e=$("info");
  if(e&&s.ph==="lobby")e.innerHTML='<div class="lbl">NEXT TOURNAMENT STARTS IN</div><div class="big t">'+clock(sec(s.startsAt))+'</div><div class="lbl">AT '+hhmm(s.startsAt)+' (YOUR TIME) · '+every()+'</div>'
-  +'<div class="lbl">PLAYERS REGISTERED</div><div class="big">'+fmt(s.count)+'</div><div class="lbl">FREE ENTRY</div><div class="lbl">GROUPS OF '+s.hs+' · WINNERS MEET IN THE FINAL</div>';
+  +'<div class="lbl">PLAYERS REGISTERED</div><div class="big">'+fmt(s.count)+'</div><div class="lbl">FREE ENTRY</div><div class="lbl">EVERYONE PLAYS EVERYONE · KNOCKOUT</div>';
  e=$("tm");if(e&&s.m){var t=sec(s.m.dl);e.textContent=t;e.className=t<=1?"low":""}
  e=$("bar");if(e&&s.m)e.style.width=Math.max(0,Math.min(100,(s.m.dl-now())/(s.tm/100)))+"%";
  e=$("wt");if(e&&s.b)e.textContent=clock(sec(s.b.wu));
- e=$("prog");if(e)e.textContent="GROUPS FINISHED "+s.hd+" OF "+s.H;
+ e=$("prog");if(e)e.textContent="PLAYERS LEFT "+fmt(s.left||0);
  e=$("st");if(e&&s.b)e.textContent=clock(sec(s.b.sa))}
 function render(){var sc=screen();if(sc[0]!==key){key=sc[0];$("view").innerHTML=sc[1];bind()}paint()}
 var AC;
