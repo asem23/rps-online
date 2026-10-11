@@ -2,82 +2,151 @@
 const http=require("http"),fs=require("fs"),path=require("path");
 const E=process.env,N=(k,d)=>+E[k]||d;
 const PORT=N("PORT",3000),EVERY=N("EVERY_MS",3600000),MIN_REG=N("MIN_REG_MS",300000),TURN_MS=N("TURN_MS",7000),WAIT_MS=N("WAIT_MS",5000),MIN=N("MIN_PLAYERS",8),
- FIRST_MS=N("FIRST_MS",20000),OVER_MS=N("OVER_MS",30000),NEED=3;
+ FIRST_MS=N("FIRST_MS",20000),OVER_MS=N("OVER_MS",30000),NEED=3,MAX_CUSTOM=N("MAX_TOURNAMENTS",200),CUP_CAP=N("MAX_CUP_PLAYERS",1000);
 const BOTN=["NOVA","ROCKY","PAPER","BLADE","PIXEL","ZERO","BYTE","STONE","SNIP","ACE","KING","TURBO","ECHO","MIKA"];
 const MV=["rock","paper","scissors"],BEATS={rock:"scissors",paper:"rock",scissors:"paper"};
 const rnd=n=>Math.floor(Math.random()*n);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
-// next start time: a round clock time (every hour on the hour), at least MIN_REG ms away
+// next start time of the official tournament: a round clock time, at least MIN_REG ms away
 function nextSlot(from){return Math.ceil((from+MIN_REG)/EVERY)*EVERY}
-const clients=new Map(),PRE=new Map();let T;  // PRE = people waiting for the next tournament
-function reset(){T={ph:"lobby",startsAt:nextSlot(Date.now()),players:new Map(),names:new Set(),main:null,mOf:{},champ:null,overAt:0,pool:0,nb:0}}
-reset();
-const isBot=x=>T.players.get(x).bot;
-function addBot(){let n;do{n=BOTN[rnd(BOTN.length)]+"_"+(1+rnd(99999))}while(T.names.has(n));const id="bot"+(++T.nb);T.names.add(n);T.players.set(id,{id,name:n,bot:true,num:T.players.size+1,b:null})}
+// where: user id -> the tournament that player is in (a player is in one tournament at a time)
+const clients=new Map(),PRE=new Map(),where=new Map(),tours=new Map();   // clients: user id -> open pages {res,mode}; tours: private tournaments by code
+const CODE_CHARS="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",BAD_PARTS=["FUCK","SHIT","BITCH","PORN","NAZI","NIGGER","RAPE","CUNT"];
+let OFF;
+// a tournament: the official one (every hour) or a private one made by a player
+function mkT(kind,cfg){return{kind,cfg,ph:"lobby",startsAt:0,created:Date.now(),players:new Map(),names:new Set(),main:null,mOf:{},champ:null,overAt:0,nb:0,owner:null,name:"",code:"",kicked:new Set(),note:"",top:[]}}
+function newOfficial(){const old=OFF;
+ if(old){for(const id of old.players.keys())if(where.get(id)===old)where.delete(id)}
+ OFF=mkT("official",{need:NEED,turn:TURN_MS,wait:WAIT_MS,first:FIRST_MS,over:OVER_MS,fillTo:MIN});
+ OFF.startsAt=nextSlot(Date.now())}
+newOfficial();
+const isBot=(t,x)=>t.players.get(x).bot;
+function addBot(t){let n;do{n=BOTN[rnd(BOTN.length)]+"_"+(1+rnd(99999))}while(t.names.has(n));const id="bot"+(++t.nb);t.names.add(n);t.players.set(id,{id,name:n,bot:true,num:t.players.size+1,b:null})}
+function addHuman(t,id,name){if(t.names.has(name))name=name.slice(0,9)+"_"+(1+rnd(99));t.names.add(name);t.players.set(id,{id,name,bot:false,num:t.players.size+1,b:null});where.set(id,t)}
+function ping(t){if(t.kind==="official")pushAll();else for(const id of t.players.keys())send(id)}
+// ---- official tournament: join ----
 function join(id,name){name=String(name||"").toUpperCase().replace(/[^A-Z0-9_]/g,"").slice(0,12)||"PLAYER";
- if(T.players.has(id))return"ok";
- if(T.ph!=="lobby"){PRE.set(id,name);return"queued"}
- if(T.names.has(name))name=name.slice(0,9)+"_"+(1+rnd(99));
- T.names.add(name);T.players.set(id,{id,name,bot:false,num:T.players.size+1,b:null});
- return"ok"}
-// the bracket: everyone who registered plays one knockout tournament
+ const cur=where.get(id);if(cur===OFF)return"ok";if(cur)return"busy";
+ if(OFF.ph!=="lobby"){PRE.set(id,name);return"queued"}
+ addHuman(OFF,id,name);return"ok"}
+// ---- private tournaments (made by registered players, joined with a code) ----
+function tCreate(u,d){
+ if(u.guest)return{error:"GUESTS CANNOT CREATE TOURNAMENTS. SIGN UP FIRST."};
+ if(where.get(u.id))return{error:"LEAVE YOUR CURRENT TOURNAMENT FIRST"};
+ if(tours.size>=MAX_CUSTOM)return{error:"SERVER IS BUSY. TRY LATER."};
+ const name=String(d.name||"").toUpperCase().replace(/[^A-Z0-9 _-]/g,"").replace(/\s+/g," ").trim().slice(0,24);
+ if(name.length<3)return{error:"NAME: 3-24 LETTERS OR NUMBERS"};
+ const flat=name.replace(/[ _-]/g,"");if(BAD_PARTS.some(w=>flat.includes(w)))return{error:"PLEASE CHOOSE ANOTHER NAME"};
+ let max=0;   // 0 = no limit
+ if(d.max!=="any"){max=Math.floor(+d.max);if(!(max>=2&&max<=CUP_CAP))return{error:"PLAYERS: ENTER A NUMBER FROM 2 TO "+CUP_CAP}}
+ const need=[1,2,3,4,5,6,7].includes(+d.need)?+d.need:2,turn=[3,5,7].includes(+d.turn)?+d.turn:5;
+ const mins=[5,15,30,60].includes(+d.start)?+d.start:0;
+ let code;do{code=Array.from({length:6},()=>CODE_CHARS[rnd(CODE_CHARS.length)]).join("")}while(tours.has(code));
+ const t=mkT("custom",{need,turn:turn*1000,wait:4000,first:5000,over:300000,max,fill:!!d.fill&&max>0});
+ t.name=name;t.code=code;t.owner=u.id;t.startsAt=mins?Date.now()+mins*60000:0;
+ tours.set(code,t);addHuman(t,u.id,u.name);return{ok:1,code}}
+function tJoinCode(u,code){code=String(code||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6);
+ const t=tours.get(code);if(!t||t.ph==="cancelled")return{error:"NO TOURNAMENT WITH THAT CODE"};
+ const cur=where.get(u.id);if(cur===t)return{ok:1};if(cur)return{error:"LEAVE YOUR CURRENT TOURNAMENT FIRST"};
+ if(t.kicked.has(u.id))return{error:"YOU WERE REMOVED FROM THIS TOURNAMENT"};
+ if(t.ph!=="lobby")return{error:"THIS TOURNAMENT ALREADY STARTED"};
+ if(t.players.size>=(t.cfg.max||CUP_CAP))return{error:"THIS TOURNAMENT IS FULL"};
+ addHuman(t,u.id,u.name);ping(t);return{ok:1}}
+function ownerT(id){const t=where.get(id);return t&&t.kind==="custom"&&t.owner===id?t:null}
+function startCustom(t){if(t.players.size<2&&!t.cfg.fill)return{error:"NEED AT LEAST 2 PLAYERS (OR TURN ON BOTS)"};startAll(t);return{ok:1}}
+function tStart(id){const t=ownerT(id);if(!t)return{error:"ONLY THE OWNER CAN DO THIS"};if(t.ph!=="lobby")return{error:"ALREADY STARTED"};return startCustom(t)}
+function tCancel(id){const t=ownerT(id);if(!t)return{error:"ONLY THE OWNER CAN DO THIS"};if(t.ph!=="lobby")return{error:"ALREADY STARTED"};
+ t.ph="cancelled";t.note="THE OWNER CANCELLED THE TOURNAMENT";t.overAt=Date.now()+60000;ping(t);return{ok:1}}
+function tKick(id,name){const t=ownerT(id);if(!t)return{error:"ONLY THE OWNER CAN DO THIS"};if(t.ph!=="lobby")return{error:"ALREADY STARTED"};
+ const nm=String(name||"").toUpperCase();
+ for(const p of t.players.values())if(!p.bot&&p.name===nm&&p.id!==id){t.kicked.add(p.id);t.names.delete(p.name);t.players.delete(p.id);where.delete(p.id);send(p.id);ping(t);return{ok:1}}
+ return{error:"PLAYER NOT FOUND"}}
+function tLeave(id){const t=where.get(id);if(!t)return{ok:1};
+ if(t.ph==="lobby"){if(t.kind==="custom"&&t.owner===id)return tCancel(id);
+  const p=t.players.get(id);if(p){t.names.delete(p.name);t.players.delete(id)}where.delete(id);ping(t);return{ok:1}}
+ if(t.ph==="over"||t.ph==="cancelled"){where.delete(id);return{ok:1}}
+ return{error:"YOU CANNOT LEAVE WHILE THE TOURNAMENT IS RUNNING"}}
+function disposeT(t){tours.delete(t.code);const ids=[...t.players.keys()].filter(x=>where.get(x)===t);ids.forEach(x=>where.delete(x));ids.forEach(send)}
+// ---- the bracket: everyone in the tournament plays one knockout ----
 function mkB(kind,idx,ids,startAt){let P=2;while(P<ids.length)P*=2;
  const nulls=P-ids.length,slots=[];let k=0;
  for(let i=0;i<P/2;i++){slots.push(ids[k++]);slots.push(i<nulls?null:ids[k++])}
  const seat={};slots.forEach((x,i)=>{if(x)seat[x]=i+1});
  return{kind,idx,ids,startAt,ph:"sched",rounds:[slots],R:Math.round(Math.log2(P)),ri:0,seat,ms:[],next:[],bye:{},out:{},wu:0,winner:null,alive:0,size:ids.length}}
-function startAll(){while(T.players.size<MIN)addBot();
- const ids=shuffle([...T.players.keys()]),n=ids.length;T.pool=n;
- const B=mkB("main",1,ids,Date.now()+FIRST_MS);T.main=B;ids.forEach(x=>T.players.get(x).b=B);
- T.ph="run";pushAll()}
-function startRound(B){B.ph="round";const cur=B.rounds[B.ri];B.ms=[];B.next=[];B.bye={};B.alive=cur.filter(Boolean).length;
+function startAll(t){
+ if(t.kind==="official"){while(t.players.size<t.cfg.fillTo)addBot(t)}
+ else if(t.cfg.fill){while(t.players.size<t.cfg.max)addBot(t)}
+ const ids=shuffle([...t.players.keys()]);
+ const B=mkB("main",1,ids,Date.now()+t.cfg.first);B.t=t;t.main=B;ids.forEach(x=>t.players.get(x).b=B);
+ t.ph="run";ping(t)}
+function startRound(B){const t=B.t;B.ph="round";const cur=B.rounds[B.ri];B.ms=[];B.next=[];B.bye={};B.alive=cur.filter(Boolean).length;
  for(let i=0;i<cur.length;i+=2){const a=cur[i],b=cur[i+1],ix=i/2;
   if(a===null||b===null){B.next[ix]=a===null?b:a;if(B.next[ix])B.bye[B.next[ix]]=true;continue}
-  if(isBot(a)&&isBot(b)){const w=rnd(2)?a:b;B.next[ix]=w;B.out[w===a?b:a]=B.ri+1;continue}
-  const m={B,a,b,sa:0,sb:0,th:0,mv:{},dl:0,done:false,ix,last:null};B.ms.push(m);T.mOf[a]=m;T.mOf[b]=m;open(m)}
+  if(isBot(t,a)&&isBot(t,b)){const w=rnd(2)?a:b;B.next[ix]=w;B.out[w===a?b:a]=B.ri+1;continue}
+  const m={B,a,b,sa:0,sb:0,th:0,mv:{},dl:0,done:false,ix,last:null};B.ms.push(m);t.mOf[a]=m;t.mOf[b]=m;open(m)}
  if(!B.ms.length)endRound(B);else pushB(B)}
-function open(m){m.th++;m.mv={};m.dl=Date.now()+TURN_MS}
-function move(id,mv){const m=T.mOf[id];if(!m||m.done||m.B.ph!=="round"||!MV.includes(mv)||m.mv[id])return;
- m.mv[id]=mv;if([m.a,m.b].every(x=>isBot(x)||m.mv[x]))resolve(m);else push2(m)}
-function resolve(m){const pick=x=>isBot(x)?MV[rnd(3)]:m.mv[x];const A=pick(m.a),Bm=pick(m.b);let r;
+function open(m){m.th++;m.mv={};m.dl=Date.now()+m.B.t.cfg.turn}
+function move(id,mv){const t=where.get(id);if(!t)return;const m=t.mOf[id];if(!m||m.done||m.B.ph!=="round"||!MV.includes(mv)||m.mv[id])return;
+ m.mv[id]=mv;if([m.a,m.b].every(x=>isBot(t,x)||m.mv[x]))resolve(m);else push2(m)}
+function resolve(m){const t=m.B.t,need=t.cfg.need,pick=x=>isBot(t,x)?MV[rnd(3)]:m.mv[x];const A=pick(m.a),Bm=pick(m.b);let r;
  if(A&&Bm)r=A===Bm?0:BEATS[A]===Bm?1:-1;else if(A||Bm)r=A?1:-1;else r=0; // no pick = lose the point
  if(r===1)m.sa++;else if(r===-1)m.sb++;
  m.last={a:A||null,b:Bm||null,r};
- if(m.sa>=NEED||m.sb>=NEED)endMatch(m,m.sa>=NEED?m.a:m.b);else{open(m);push2(m)}}
+ if(m.sa>=need||m.sb>=need)endMatch(m,m.sa>=need?m.a:m.b);else{open(m);push2(m)}}
 function endMatch(m,w){m.done=true;const l=w===m.a?m.b:m.a,B=m.B;B.next[m.ix]=w;B.out[l]=B.ri+1;push2(m);
  if(B.ms.every(x=>x.done))endRound(B)}
 function endRound(B){B.rounds.push(B.next);
- if(B.next.length===1){B.winner=B.next[0];B.ph="done";done(B)}
+ if(B.next.length===1){B.winner=B.next[0];B.ph="done";finish(B.t,B.winner)}
  else if(!B.ms.length){B.ri++;startRound(B)}   // nobody to wait for: go on at once
- else{B.ph="wait";B.wu=Date.now()+WAIT_MS;pushB(B)}}
-function done(B){finish(B.winner)}
-function finish(id){T.ph="over";T.champ=id;T.overAt=Date.now()+OVER_MS;pushAll()}
-function view(id){const p=T.players.get(id),v={ph:T.ph,now:Date.now(),startsAt:T.startsAt,count:T.players.size,pool:T.pool||T.players.size,min:MIN,tm:TURN_MS,left:T.main?T.main.alive:0,ev:EVERY,q:PRE.has(id)};
+ else{B.ph="wait";B.wu=Date.now()+B.t.cfg.wait;pushB(B)}}
+function computeTop(t){const B=t.main,list=B.ids.map(id=>({id,o:id===t.champ?1e9:(B.out[id]||0)})).sort((a,b)=>b.o-a.o);
+ const top=[];let rank=0,prev=null,i=0;
+ for(const e of list){i++;if(e.o!==prev){rank=i;prev=e.o}if(rank>4)break;top.push({n:t.players.get(e.id).name,r:rank})}
+ return top}
+function finish(t,id){t.ph="over";t.champ=id;t.overAt=Date.now()+t.cfg.over;t.top=computeTop(t);ping(t)}
+function humans(t,k){const out=[];for(const x of t.players.values()){if(!x.bot){out.push(x.name);if(out.length>=k)break}}return out}
+function tview(t,id){const p=t.players.get(id);
+ const v={ph:t.ph,now:Date.now(),startsAt:t.startsAt,count:t.players.size,min:MIN,tm:t.cfg.turn,need:t.cfg.need,left:t.main?t.main.alive:0,ev:EVERY,q:PRE.has(id)};
+ if(t.kind==="custom"){v.c={name:t.name,code:t.code,max:t.cfg.max,need:t.cfg.need,fill:!!t.cfg.fill,owner:t.owner===id,auto:!!t.startsAt,note:t.note,
+   names:humans(t,60),n:[...t.players.values()].filter(x=>!x.bot).length};if(t.ph==="over")v.top=t.top}
  if(p){v.me={name:p.name,num:p.num,seat:0,out:0,won:false};const B=p.b;
   if(B){v.b={kind:B.kind,idx:B.idx,ph:B.ph,sa:B.startAt,ri:B.ri,R:B.R,wu:B.wu,left:B.alive,size:B.size};
    v.me.seat=B.seat[id]||0;v.me.out=B.out[id]||0;v.me.won=B.winner===id;
-   const m=T.mOf[id];
-   if(B.ph==="round"&&m&&m.B===B&&!m.done){const mine=m.a===id,o=T.players.get(mine?m.b:m.a),L=m.last;
+   const m=t.mOf[id];
+   if(B.ph==="round"&&m&&m.B===B&&!m.done){const mine=m.a===id,o=t.players.get(mine?m.b:m.a),L=m.last;
     v.m={opp:o.name,os:B.seat[o.id],ys:mine?m.sa:m.sb,ops:mine?m.sb:m.sa,dl:m.dl,th:m.th,moved:!!m.mv[id],
      last:L&&{me:mine?L.a:L.b,op:mine?L.b:L.a,r:mine?L.r:-L.r}}}
    else if(B.ph==="round"&&B.bye[id])v.bye=true}}
- if(T.champ){v.champ=T.players.get(T.champ).name;v.champMe=T.champ===id}
+ if(t.champ){v.champ=t.players.get(t.champ).name;v.champMe=t.champ===id}
  return v}
-function send(id){const r=clients.get(id);if(r)r.write("data: "+JSON.stringify(view(id))+"\n\n")}
+// each page the player has open sees only its own part: the menu, the official tournament, or the private tournaments
+function view(id,mode){const mine=where.get(id);
+ if(mode==="home"){const pr=mine&&mine.kind==="custom"?mine:null;
+  return{ph:"home",now:Date.now(),off:{ph:OFF.ph,startsAt:OFF.startsAt,count:OFF.players.size,joined:mine===OFF},priv:pr?{name:pr.name,code:pr.code,ph:pr.ph}:null}}
+ if(mode==="private"){if(!mine||mine.kind!=="custom")return{ph:"menu",now:Date.now(),other:mine?{kind:"official"}:null};return tview(mine,id)}
+ const v=tview(OFF,id);if(mine&&mine.kind==="custom")v.other={kind:"private",name:mine.name};return v}
+function send(id){const set=clients.get(id);if(!set)return;for(const c of set)c.res.write("data: "+JSON.stringify(view(id,c.mode))+"\n\n")}
 function pushAll(){for(const id of clients.keys())send(id)}
 function push2(m){send(m.a);send(m.b)}
 function pushB(B){for(const x of B.ids)send(x)}
-function active(id){if(T.ph==="lobby")return true;const p=T.players.get(id),B=p&&p.b;return!!B&&(B.ph==="round"||B.ph==="wait")&&!B.out[id]}
-let l1=0,l5=0;
-setInterval(()=>{const n=Date.now();
- if(T.ph==="lobby"){if(n>=T.startsAt){if(T.players.size)startAll();else T.startsAt=nextSlot(n)}}  // nobody registered: skip this slot
- else if(T.ph==="run"){const bs=T.main&&T.main.ph!=="done"?[T.main]:[];
-  for(const B of bs){
+function active(id){const t=where.get(id)||OFF;if(t.ph==="lobby"||t.ph==="cancelled")return true;const p=t.players.get(id),B=p&&p.b;return!!B&&(B.ph==="round"||B.ph==="wait")&&!B.out[id]}
+function tickT(t,n){
+ if(t.ph==="lobby"){
+  if(t.kind==="official"){if(n>=t.startsAt){if(t.players.size)startAll(t);else t.startsAt=nextSlot(n)}}  // nobody registered: skip this slot
+  else if(t.startsAt&&n>=t.startsAt){const r=startCustom(t);if(r.error){t.ph="cancelled";t.note="NOT ENOUGH PLAYERS TO START";t.overAt=n+60000;ping(t)}}
+  else if(n-t.created>3*3600e3){t.ph="cancelled";t.note="THIS TOURNAMENT EXPIRED";t.overAt=n+60000;ping(t)}}
+ else if(t.ph==="run"){const B=t.main;
+  if(B&&B.ph!=="done"){
    if(B.ph==="sched"){if(n>=B.startAt)startRound(B)}
    else if(B.ph==="round"){for(const m of B.ms)if(!m.done&&n>=m.dl)resolve(m)}
    else if(B.ph==="wait"&&n>=B.wu){B.ri++;startRound(B)}}}
- else if(T.ph==="over"&&n>=T.overAt){reset();for(const[i,nm]of PRE)join(i,nm);PRE.clear();pushAll()}
+ else if((t.ph==="over"||t.ph==="cancelled")&&n>=t.overAt){
+  if(t.kind==="official"){newOfficial();for(const[i,nm]of PRE)join(i,nm);PRE.clear();pushAll()}else disposeT(t)}}
+let l1=0,l5=0;
+setInterval(()=>{const n=Date.now();
+ tickT(OFF,n);for(const t of[...tours.values()])tickT(t,n);
  if(n-l1>=1000){l1=n;const all=n-l5>=5000;if(all)l5=n;for(const id of clients.keys())if(all||active(id))send(id)}},200);
+
 // ================= accounts (email + password), saved in a file =================
 const crypto=require("crypto");
 const DATA_DIR=E.DATA_DIR||path.join(__dirname,"data"),DB_FILE=path.join(DATA_DIR,"db.json");
@@ -151,11 +220,22 @@ http.createServer((q,r)=>{const u=new URL(q.url,"http://x"),P=u.pathname;
   if(!user||!ok)return J(r,401,{error:"WRONG EMAIL OR PASSWORD"});
   setCookie(r,q,newSession(user.id),2592000);J(r,200,{user:pub(user)})});
  if(P==="/events"&&q.method==="GET"){const a=authUser(q);if(!a){J(r,401,{error:"NOT LOGGED IN"});return}
-  const old=clients.get(a.id);if(old&&old!==r){try{old.end()}catch(e){}}   // newest tab or device wins
+  const m=u.searchParams.get("mode"),mode=m==="home"||m==="private"?m:"official";
+  let set=clients.get(a.id);if(!set)clients.set(a.id,set=new Set());
+  while(set.size>=6){const o=set.values().next().value;set.delete(o);try{o.res.end()}catch(e){}}   // at most 6 open pages per player
   r.writeHead(200,{"Content-Type":"text/event-stream","Cache-Control":"no-cache","Connection":"keep-alive","X-Accel-Buffering":"no"});
-  clients.set(a.id,r);q.on("close",()=>{if(clients.get(a.id)===r)clients.delete(a.id)});send(a.id);return}
+  const c={res:r,mode};set.add(c);q.on("close",()=>{set.delete(c);if(!set.size&&clients.get(a.id)===set)clients.delete(a.id)});
+  r.write("data: "+JSON.stringify(view(a.id,mode))+"\n\n");return}
  if((P==="/join"||P==="/move")&&q.method==="POST"){const a=authUser(q);if(!a)return J(r,401,{error:"NOT LOGGED IN"});
   return body(q,d=>{if(!d)return J(r,400,{error:"BAD REQUEST"});
-   let res="ok";if(P==="/join")res=join(a.id,a.name);else move(a.id,d.move);send(a.id);J(r,200,{result:res})})}
- if(P==="/"){r.writeHead(200,{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-cache"}).end(fs.readFileSync(path.join(__dirname,"index.html")));return}
+   let res="ok";if(P==="/join")res=join(a.id,a.name);else move(a.id,d.move);send(a.id);
+   if(res==="busy")return J(r,409,{error:"LEAVE YOUR OTHER TOURNAMENT FIRST"});J(r,200,{result:res})})}
+ if(P.startsWith("/api/t/")&&q.method==="POST"){const a=authUser(q);if(!a)return J(r,401,{error:"NOT LOGGED IN"});
+  return body(q,d=>{if(!d)return J(r,400,{error:"BAD REQUEST"});const act=P.slice(7);let res;
+   if(act==="create"){res=limited("tc:"+a.id,10,3600000)?{error:"TOO MANY TRIES. WAIT A BIT."}:tCreate(a,d)}
+   else if(act==="join"){res=limited("tj:"+a.id,30,600000)?{error:"TOO MANY TRIES. WAIT A BIT."}:tJoinCode(a,d.code)}
+   else if(act==="leave")res=tLeave(a.id);else if(act==="start")res=tStart(a.id);else if(act==="cancel")res=tCancel(a.id);
+   else if(act==="kick")res=tKick(a.id,d.name);else res={error:"UNKNOWN REQUEST"};
+   send(a.id);J(r,res.error?400:200,res)})}
+ if(P==="/"||P==="/official"||P==="/private"){r.writeHead(200,{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-cache"}).end(fs.readFileSync(path.join(__dirname,"index.html")));return}
  r.writeHead(404).end()}).listen(PORT,()=>console.log("RPS Kickoff running on port "+PORT+" (accounts saved in "+DATA_DIR+")"));

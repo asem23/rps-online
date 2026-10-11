@@ -19,6 +19,12 @@ main{max-width:560px;margin:0 auto;padding:24px 14px 48px}
 .ctl{display:flex;gap:14px}
 input.raw{text-transform:none}
 .btn.alt{background:var(--cyan);margin-top:12px}
+a.btn{display:block;text-align:center;text-decoration:none}
+input[type=number]{-moz-appearance:textfield}input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+select{display:block;width:100%;font:inherit;color:var(--ink);background:#000;border:0;padding:12px;font-size:11px}
+.names{list-style:none;padding:0;margin:10px 0 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:9px}
+.names.one{grid-template-columns:1fr}.names li{background:#000;padding:8px;overflow-wrap:anywhere}
+.kick{font:inherit;font-size:7px;color:var(--pink);background:none;border:1px solid var(--pink);cursor:pointer;margin-left:4px;padding:2px 4px}
 .lnk{font:inherit;font-size:9px;color:var(--cyan);background:none;border:0;cursor:pointer;margin-top:20px;display:block;width:100%;text-align:center;text-decoration:underline}
 .snd{font:inherit;font-size:8px;color:var(--panel);background:none;border:2px solid var(--panel);padding:5px 7px;margin-right:12px;cursor:pointer}
 .panel{background:var(--panel);box-shadow:inset 0 0 0 4px #000,inset 0 0 0 8px var(--shade);padding:30px 24px;min-height:380px}
@@ -75,7 +81,9 @@ function icon(m,px){var d=BMP[m],a="",b="";
  return'<svg width="'+9*px+'" height="'+9*px+'" viewBox="0 0 9 9" shape-rendering="crispEdges"><g fill="rgba(0,0,0,.35)">'+a+'</g><g fill="currentColor">'+b+'</g></svg>'}
 document.getElementById("ctl").innerHTML='<span style="color:#e0a800">'+icon("min",2)+'</span><span style="color:#1d9e5a">'+icon("max",2)+'</span><span style="color:#e0395f">'+icon("x",2)+'</span>';
 
-var s=null,off=0,key="",user=null,es=null;
+var s=null,off=0,key="",user=null,es=null,ui=null;
+var PATH=location.pathname.replace(/\/+$/,""),MODE=PATH==="/official"?"official":PATH==="/private"?"private":"home";
+var nav=function(p){location.href=p};
 function $(i){return document.getElementById(i)}
 function fmt(n){return n.toLocaleString("en-US")}
 function now(){return Date.now()+off}
@@ -86,9 +94,42 @@ function clock(t){var h=Math.floor(t/3600),m=Math.floor(t%3600/60),x=t%60;return
 function post(p,b){return fetch(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b||{})}).catch(function(){})}
 function onMsg(e){s=JSON.parse(e.data);off=s.now-Date.now();render()}
 //CONNECT-START
-function connect(){if(es)es.close();es=new EventSource("/events");es.onmessage=onMsg;
+function connect(){if(es)es.close();es=new EventSource("/events?mode="+MODE);es.onmessage=onMsg;
  es.onerror=function(){if(es&&es.readyState===2)checkAuth()}}
 //CONNECT-END
+function act(path,o,b){if(b)b.disabled=true;
+ post(path,o).then(function(x){if(!x)return{ok:false,d:{error:"CONNECTION PROBLEM. TRY AGAIN."}};
+  return x.json().then(function(d){return{ok:x.ok,d:d}},function(){return{ok:false,d:{}}})}).then(function(x){
+  if(b)b.disabled=false;if(!x.ok){var e=$("err");if(e)e.textContent=x.d.error||"TRY AGAIN"}})}
+function backLnk(){return'<a class="lnk" href="/" data-go="/">BACK TO MENU</a>'}
+function goBtn(p,t,alt){return'<a class="btn'+(alt?' alt':'')+'" href="'+p+'" data-go="'+p+'">'+t+'</a>'}
+function homeScreen(){var o=s.off,p=s.priv;
+ return["h"+(o.joined?1:0)+(p?p.code:""),'<h1>MENU</h1><div class="lbl c" style="margin-bottom:18px">HELLO, '+user.name+'</div>'
+  +goBtn("/official","OFFICIAL TOURNAMENT")+'<div class="lbl c" style="margin:8px 0 22px" id="hoff"></div>'
+  +goBtn("/private","PRIVATE TOURNAMENT",1)+'<div class="lbl c" style="margin:8px 0">'+(p?'YOU ARE IN: '+p.name:'PLAY WITH FRIENDS USING A CODE')+'</div>']}
+function otherScreen(){var pr=s.other.kind==="private";
+ return["oth"+s.other.kind,'<h1>BUSY</h1><div class="info"><div class="lbl">YOU ARE IN '+(pr?'A PRIVATE TOURNAMENT':'THE OFFICIAL TOURNAMENT')+'</div>'+(pr&&s.other.name?'<div class="lbl">'+s.other.name+'</div>':'')+'<div class="lbl" style="margin-top:10px">FINISH OR LEAVE IT FIRST</div></div>'+goBtn(pr?"/private":"/official","GO THERE")+backLnk()]}
+function privMenu(){return'<h1>PRIVATE</h1><div class="lbl c" style="margin-bottom:16px">PLAY WITH FRIENDS USING A CODE</div>'
+ +(user.guest?'<button class="btn" id="hcode">JOIN WITH CODE</button><div class="lbl c" style="margin-top:14px">SIGN UP TO CREATE YOUR OWN TOURNAMENT</div>':'<button class="btn" id="hnew">CREATE TOURNAMENT</button><button class="btn alt" id="hcode">JOIN WITH CODE</button>')+backLnk()}
+function homeBtns(){return'<button class="btn alt" id="hcode">JOIN WITH CODE</button>'+(user.guest?'<div class="lbl c" style="margin-top:14px">SIGN UP TO CREATE YOUR OWN TOURNAMENT</div>':'<button class="btn alt" id="hnew">CREATE TOURNAMENT</button>')}
+function closeUi(){ui=null;key="";if(s)render()}
+function selHtml(id,label,opts){return'<div class="lbl" style="margin-top:10px">'+label+'</div><div class="pillw"><select id="'+id+'">'+opts.map(function(o){return'<option value="'+o[0]+'">'+o[1]+'</option>'}).join("")+'</select></div>'}
+function showCreate(){ui="create";key="ui";
+ $("view").innerHTML='<h1>NEW CUP</h1><div class="lbl">TOURNAMENT NAME</div><div class="pillw"><input id="fnm" maxlength="24" autocomplete="off" placeholder="my friends cup" aria-label="tournament name"></div>'
+ +selHtml("fmx","MAX PLAYERS",[[4,"4"],[8,"8"],[16,"16"],[32,"32"],[64,"64"],["num","TYPE A NUMBER"],["any","NO LIMIT"]])
+ +'<div class="pillw" id="fmw" hidden><input id="fmn" type="number" inputmode="numeric" min="2" max="1000" placeholder="2 - 1000" aria-label="number of players"></div>'
+ +selHtml("fnd","MATCH FORMAT",[[1,"BEST OF 1"],[2,"BEST OF 3"],[3,"BEST OF 5"],[4,"BEST OF 7"],[5,"BEST OF 9"],[6,"BEST OF 11"],[7,"BEST OF 13"]])
+ +selHtml("ftn","TIME TO PICK",[[3,"3 SECONDS"],[5,"5 SECONDS"],[7,"7 SECONDS"]])
+ +selHtml("fst","START",[["manual","WHEN I PRESS START"],[5,"AUTO IN 5 MIN"],[15,"AUTO IN 15 MIN"],[30,"AUTO IN 30 MIN"],[60,"AUTO IN 60 MIN"]])
+ +selHtml("fbt","EMPTY SEATS",[[0,"NO BOTS"],[1,"BOTS FILL THEM"]])
+ +'<button class="btn" id="fgo" style="margin-top:16px">CREATE</button><div class="msg l" id="err"></div><button class="lnk" id="fbk">BACK</button>';
+ $("fmx").value=8;$("fmx").onchange=function(){var a=this.value==="any";$("fbt").disabled=a;if(a)$("fbt").value="0";$("fmw").hidden=this.value!=="num";if(this.value==="num")$("fmn").focus()};$("fnd").value=2;$("ftn").value=5;
+ $("fgo").onclick=function(){act("/api/t/create",{name:$("fnm").value,max:$("fmx").value==="any"?"any":$("fmx").value==="num"?+$("fmn").value:+$("fmx").value,need:+$("fnd").value,turn:+$("ftn").value,start:$("fst").value,fill:$("fbt").value==="1"},this)};
+ $("fbk").onclick=closeUi}
+function showCode(){ui="code";key="ui";
+ $("view").innerHTML='<h1>JOIN</h1><div class="lbl c">ENTER THE 6 CHARACTER CODE</div><div class="pillw" style="margin-top:12px"><input class="raw" id="jc" maxlength="6" autocomplete="off" placeholder="ABC234" aria-label="tournament code" style="text-transform:uppercase;text-align:center;font-size:20px"></div><button class="btn" id="jgo">JOIN</button><div class="msg l" id="err"></div><button class="lnk" id="jbk">BACK</button>';
+ $("jgo").onclick=function(){act("/api/t/join",{code:$("jc").value},this)};
+ $("jc").onkeydown=function(e){if(e.key==="Enter")$("jgo").click()};$("jbk").onclick=closeUi}
 function checkAuth(){fetch("/api/me").then(function(r){return r.ok?r.json():null}).then(function(d){
  if(d&&d.user){user=d.user;$("out").hidden=false;if(!es||es.readyState===2)connect()}
  else{user=null;$("out").hidden=true;if(es){es.close();es=null}s=null;showAuth("login")}}).catch(function(){})}
@@ -115,21 +156,31 @@ function msgOf(m){var L=m.last;if(!L)return["","PICK YOUR THROW."];
  if(!L.op)return["w",m.opp+" TIMED OUT. POINT TO YOU!"];
  return L.r>0?["w",L.me.toUpperCase()+" BEATS "+L.op.toUpperCase()+". POINT TO YOU!"]:["l",L.op.toUpperCase()+" BEATS "+L.me.toUpperCase()+". POINT TO "+m.opp+"."]}
 function screen(){var m=s.m,me=s.me,b=s.b;
+ if(MODE==="home")return homeScreen();
+ if(s.other)return otherScreen();
+ if(MODE==="private"&&s.ph==="menu")return["pm",privMenu()];
+ if(s.c){var c=s.c;
+  if(s.ph==="cancelled")return["cx",'<h1>CLOSED</h1><div class="info"><div class="lbl">'+c.name+'</div><p>'+c.note+'</p></div><button class="btn" id="hback">LEAVE THIS TOURNAMENT</button>'+backLnk()+'<div class="msg l" id="err"></div>'];
+  if(s.ph==="lobby"){var li=c.names.map(function(n){return'<li>'+n+(c.owner&&n!==me.name?' <button class="kick" data-n="'+n+'">KICK</button>':'')+'</li>'}).join("");
+   return["cl|"+c.n+"|"+c.names.join(",")+"|"+c.owner,'<div class="lbl c">PRIVATE TOURNAMENT</div><h1 style="margin:10px 0 14px">'+c.name+'</h1><div class="c"><div class="lbl">SHARE THIS CODE</div><div class="big t">'+c.code+'</div></div><div class="lbl c">BEST OF '+(c.need*2-1)+' · '+(s.tm/1000)+' SEC · '+(c.fill?"BOTS FILL EMPTY SEATS":"NO BOTS")+'</div><div class="lbl c" style="margin:12px 0" id="cinfo"></div><div class="lbl c">PLAYERS '+c.n+(c.max?'/'+c.max:' · NO LIMIT')+'</div><ul class="names">'+li+'</ul>'+(c.n>c.names.length?'<div class="lbl c" style="margin:-8px 0 14px">+'+(c.n-c.names.length)+' MORE PLAYERS</div>':'')+''+(c.owner?'<button class="btn" id="cst">START NOW</button><button class="btn alt" id="ccx">CANCEL TOURNAMENT</button>':'<button class="btn alt" id="hleave">LEAVE</button>')+'<div class="msg l" id="err"></div>']}
+  if(s.ph==="over"){var w=s.champMe,lost=!w&&me&&me.out>0;
+   var tl=(s.top||[]).map(function(x){return'<li>'+["","1ST","2ND","3RD","4TH"][x.r]+' '+x.n+'</li>'}).join("");
+   return["co"+(w?1:0),(w?'<div class="huge grn" style="min-height:22vh">YOU<br>WIN!</div>':lost?'<div class="huge red" style="min-height:22vh">GAME<br>OVER</div>':'')+'<div class="lbl c">'+c.name+' · RESULTS</div><ul class="names one">'+tl+'</ul><button class="btn" id="hback">LEAVE THIS TOURNAMENT</button>'+backLnk()+'<div class="msg l" id="err"></div>']}}
  if(s.ph==="lobby"){
-  if(!me)return["l0",'<h1>HELLO</h1><div class="info" id="info"></div><div class="c" style="margin-bottom:16px">'+user.name+', READY?'+(user.guest?'<div class="lbl" style="margin-top:8px">GUEST ACCOUNT</div>':'')+'</div><button class="btn" id="join">JOIN TOURNAMENT</button><div class="msg l" id="err"></div>'];
-  return["l1",'<h1>YOU\'RE IN</h1><div class="info" id="info"></div><div class="c"><div class="lbl">YOUR PLAYER NUMBER</div><div class="big t">#'+me.num+'</div>WELCOME, '+me.name+'.<br>YOU CAN COME BACK BEFORE THE START.</div>']}
+  if(!me)return["l0",'<h1>HELLO</h1><div class="info" id="info"></div><div class="c" style="margin-bottom:16px">'+user.name+', READY?'+(user.guest?'<div class="lbl" style="margin-top:8px">GUEST ACCOUNT</div>':'')+'</div><button class="btn" id="join">JOIN TOURNAMENT</button><div class="msg l" id="err"></div>'+backLnk()];
+  return["l1",'<h1>YOU\'RE IN</h1><div class="info" id="info"></div><div class="c"><div class="lbl">YOUR PLAYER NUMBER</div><div class="big t">#'+me.num+'</div>WELCOME, '+me.name+'.<br>YOU CAN COME BACK BEFORE THE START.</div><button class="lnk" id="hleave">LEAVE TOURNAMENT</button>'+backLnk()+'<div class="msg l" id="err"></div>']}
  if(s.ph==="over"){var w=s.champMe,lost=me&&!w&&me.out>0;
-  if(w)return["o1",'<div class="huge grn">YOU<br>WIN!</div><div class="c"><div class="lbl">YOU ARE THE CHAMPION!</div><p>NEXT TOURNAMENT OPENS SOON.</p></div>'];
-  if(lost)return["oL",'<div class="huge red">GAME<br>OVER</div><div class="c"><div class="lbl">YOU WERE OUT IN ROUND '+me.out+'</div><div class="lbl" style="margin-top:12px">CHAMPION</div><div class="big">'+s.champ+'</div><p>NEXT TOURNAMENT OPENS SOON.</p></div>'];
-  return["o0",'<div class="c"><div class="lbl">CHAMPION</div><div class="big">'+s.champ+'</div><p>NEXT TOURNAMENT OPENS SOON.</p></div>']}
+  if(w)return["o1",'<div class="huge grn">YOU<br>WIN!</div><div class="c"><div class="lbl">YOU ARE THE CHAMPION!</div><p>NEXT TOURNAMENT OPENS SOON.</p></div>'+backLnk()];
+  if(lost)return["oL",'<div class="huge red">GAME<br>OVER</div><div class="c"><div class="lbl">YOU WERE OUT IN ROUND '+me.out+'</div><div class="lbl" style="margin-top:12px">CHAMPION</div><div class="big">'+s.champ+'</div><p>NEXT TOURNAMENT OPENS SOON.</p></div>'+backLnk()];
+  return["o0",'<div class="c"><div class="lbl">CHAMPION</div><div class="big">'+s.champ+'</div><p>NEXT TOURNAMENT OPENS SOON.</p></div>'+backLnk()]}
  var prog='<div class="lbl" id="prog"></div>';
  if(!me||!b){if(s.q)return["sq1",'<h1>QUEUED</h1><div class="info"><div class="lbl">YOU ARE IN THE NEXT TOURNAMENT</div><div class="lbl">IT OPENS WHEN THIS ONE ENDS</div><div class="lbl">STAY ON THIS PAGE</div><div class="lbl" id="prog"></div></div>'];
-  return["sq0",'<h1>LIVE</h1><div class="info"><div class="lbl">REGISTRATION IS CLOSED</div><div class="big">'+fmt(s.count)+'</div><div class="lbl">PLAYERS</div><div class="lbl" id="prog"></div></div><button class="btn" id="join">JOIN NEXT TOURNAMENT</button><div class="msg l" id="err"></div>']}
+  return["sq0",'<h1>LIVE</h1><div class="info"><div class="lbl">REGISTRATION IS CLOSED</div><div class="big">'+fmt(s.count)+'</div><div class="lbl">PLAYERS</div><div class="lbl" id="prog"></div></div><button class="btn" id="join">JOIN NEXT TOURNAMENT</button><div class="msg l" id="err"></div>'+backLnk()]}
  if(me.out)return["x"+me.out,'<div class="huge red">GAME<br>OVER</div><div class="lbl c">YOU ARE OUT IN ROUND '+me.out+'</div><div class="info" style="margin-top:14px"><div class="lbl">PLAYERS</div><div class="big">'+fmt(s.count)+'</div>'+prog+'</div>'];
  if(b.ph==="sched")return["k",'<div class="lbl c">YOU ARE IN!</div><h1 style="margin-top:14px">SOON</h1><div class="info"><div class="lbl">STARTS IN</div><div class="big t" id="st"></div><div class="lbl">YOUR SEAT #'+fmt(me.seat)+' · '+fmt(b.size)+' PLAYERS</div><div class="lbl">STAY ON THIS PAGE</div></div>'];
  if(b.ph==="wait")return["w"+b.ri+b.kind,'<div class="lbl c">'+rname()+' COMPLETE</div><h1 style="margin-top:14px">WAIT</h1><div class="info"><div class="lbl">NEXT ROUND IN</div><div class="big t" id="wt"></div><div class="lbl">PLAYERS LEFT</div><div class="big">'+fmt(b.left)+'</div><div class="lbl">YOU ARE THROUGH · SEAT #'+fmt(me.seat)+'</div></div>'];
  if(m){var mm=msgOf(m);
-  return["m"+b.ri+b.kind+"|"+m.th+"|"+m.moved+"|"+m.ys+"|"+m.ops,'<div class="lbl c">'+rname()+' · '+fmt(b.left)+' LEFT · BEST OF 5</div>'
+  return["m"+b.ri+b.kind+"|"+m.th+"|"+m.moved+"|"+m.ys+"|"+m.ops,'<div class="lbl c">'+rname()+' · '+fmt(b.left)+' LEFT · BEST OF '+(s.need*2-1)+'</div>'
   +'<div class="vs"><div>'+me.name+'<div class="lbl">SEAT #'+fmt(me.seat)+'</div></div><div class="score">'+m.ys+'-'+m.ops+'</div><div>'+m.opp+'<div class="lbl">SEAT #'+fmt(m.os)+'</div></div></div>'
   +'<div class="c">'+(m.moved?'WAITING FOR '+m.opp+'...':'PICK IN <span id="tm"></span>s OR LOSE THE POINT')+'</div><div class="tbar"><i id="bar" style="animation:none;width:100%"></i></div><div class="moves">'
   +["rock","paper","scissors"].map(function(x){return'<button class="move" data-m="'+x+'"'+(m.moved?' disabled':'')+'>'+icon(x,6)+x.toUpperCase()+'</button>'}).join("")
@@ -142,8 +193,10 @@ function paint(){if(!s)return;var e=$("info");
  e=$("bar");if(e&&s.m)e.style.width=Math.max(0,Math.min(100,(s.m.dl-now())/(s.tm/100)))+"%";
  e=$("wt");if(e&&s.b)e.textContent=clock(sec(s.b.wu));
  e=$("prog");if(e)e.textContent="PLAYERS LEFT "+fmt(s.left||0);
+e=$("hoff");if(e&&s.off)e.textContent=(s.off.joined?"YOU ARE IN · ":"")+(s.off.ph==="lobby"?"STARTS IN "+clock(sec(s.off.startsAt)):s.off.ph==="run"?"RUNNING NOW":"JUST ENDED");
+e=$("cinfo");if(e&&s.c)e.textContent=s.c.auto?"STARTS IN "+clock(sec(s.startsAt))+" (OR WHEN THE OWNER STARTS)":"THE OWNER STARTS WHEN READY";
  e=$("st");if(e&&s.b)e.textContent=clock(sec(s.b.sa))}
-function render(){var sc=screen();if(sc[0]!==key){key=sc[0];$("view").innerHTML=sc[1];bind()}paint()}
+function render(){if(s&&s.c)ui=null;if(ui)return;var sc=screen();if(sc[0]!==key){key=sc[0];$("view").innerHTML=sc[1];bind()}paint()}
 var AC;
 function webSfx(m){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();var t=AC.currentTime;
  function env(g,t0,pk,dur){g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(pk,t0+0.005);g.gain.exponentialRampToValueAtTime(0.0001,t0+dur)}
@@ -177,9 +230,16 @@ try{mkSnd()}catch(e){}
 function sfx(m){if(!sndOn)return;try{var a=SND[m];if(a&&a.play){a.currentTime=0;var pr=a.play();if(pr&&pr.catch)pr.catch(function(){webSfx(m)});return}}catch(e){}webSfx(m)}
 document.getElementById("snd").onclick=function(){sndOn=!sndOn;this.textContent=sndOn?"SOUND ON":"SOUND OFF";
  if(sndOn){sfx("rock");setTimeout(function(){sfx("paper")},450);setTimeout(function(){sfx("scissors")},900)}};
-function bind(){var j=$("join");
- if(j)j.onclick=function(){j.disabled=true;j.textContent="JOINING...";
-  post("/join",{}).then(function(x){if(!x||!x.ok){j.disabled=false;j.textContent="TRY AGAIN";var e=$("err");if(e)e.textContent="CONNECTION PROBLEM. TRY AGAIN."}})};
+function bind(){var j=$("join"),e1;
+ if(j)j.onclick=function(){act("/join",{},j)};
+ [].forEach.call(document.querySelectorAll("[data-go]"),function(a){a.onclick=function(ev){ev.preventDefault();nav(this.getAttribute("data-go"))}});
+ if(e1=$("hnew"))e1.onclick=showCreate;
+ if(e1=$("hcode"))e1.onclick=showCode;
+ if(e1=$("hleave"))e1.onclick=function(){act("/api/t/leave",{},this)};
+ if(e1=$("hback"))e1.onclick=function(){act("/api/t/leave",{},this)};
+ if(e1=$("cst"))e1.onclick=function(){act("/api/t/start",{},this)};
+ if(e1=$("ccx"))e1.onclick=function(){if(!this._c){this._c=1;this.textContent="TAP AGAIN TO CANCEL";return}act("/api/t/cancel",{},this)};
+ [].forEach.call(document.querySelectorAll(".kick"),function(k){k.onclick=function(){act("/api/t/kick",{name:k.dataset.n},k)}});
  [].forEach.call(document.querySelectorAll(".move"),function(b){b.onclick=function(){sfx(b.dataset.m);post("/move",{move:b.dataset.m})}})}
 setInterval(paint,150);
 document.getElementById("out").onclick=function(){post("/api/logout",{}).then(function(){checkAuth()})};
