@@ -2,7 +2,7 @@
 const http=require("http"),fs=require("fs"),path=require("path");
 const E=process.env,N=(k,d)=>+E[k]||d;
 const PORT=N("PORT",3000),EVERY=N("EVERY_MS",3600000),MIN_REG=N("MIN_REG_MS",300000),TURN_MS=N("TURN_MS",7000),WAIT_MS=N("WAIT_MS",5000),MIN=N("MIN_PLAYERS",8),
- FIRST_MS=N("FIRST_MS",20000),OVER_MS=N("OVER_MS",30000),NEED=3,MAX_CUSTOM=N("MAX_TOURNAMENTS",200),CUP_CAP=N("MAX_CUP_PLAYERS",1000);
+ FIRST_MS=N("FIRST_MS",20000),OVER_MS=N("OVER_MS",30000),NEED=3,MAX_CUSTOM=N("MAX_TOURNAMENTS",200),CUP_CAP=N("MAX_CUP_PLAYERS",1000),SHAKE_MS=N("SHAKE_MS",1500),REVEAL_MS=N("REVEAL_MS",1600);
 const BOTN=["NOVA","ROCKY","PAPER","BLADE","PIXEL","ZERO","BYTE","STONE","SNIP","ACE","KING","TURBO","ECHO","MIKA"];
 const MV=["rock","paper","scissors"],BEATS={rock:"scissors",paper:"rock",scissors:"paper"};
 const rnd=n=>Math.floor(Math.random()*n);
@@ -39,7 +39,7 @@ function tCreate(u,d){
  const flat=name.replace(/[ _-]/g,"");if(BAD_PARTS.some(w=>flat.includes(w)))return{error:"PLEASE CHOOSE ANOTHER NAME"};
  let max=0;   // 0 = no limit
  if(d.max!=="any"){max=Math.floor(+d.max);if(!(max>=2&&max<=CUP_CAP))return{error:"PLAYERS: ENTER A NUMBER FROM 2 TO "+CUP_CAP}}
- const need=[1,2,3,4,5,6,7].includes(+d.need)?+d.need:2,turn=[3,5,7].includes(+d.turn)?+d.turn:5;
+ const need=[1,2,3,4,5,6,7].includes(+d.need)?+d.need:2,turn=[1.5,3,5,7].includes(+d.turn)?+d.turn:5;
  const mins=[5,15,30,60].includes(+d.start)?+d.start:0;
  let code;do{code=Array.from({length:6},()=>CODE_CHARS[rnd(CODE_CHARS.length)]).join("")}while(tours.has(code));
  const t=mkT("custom",{need,turn:turn*1000,wait:4000,first:5000,over:300000,max,fill:!!d.fill&&max>0});
@@ -85,14 +85,18 @@ function startRound(B){const t=B.t;B.ph="round";const cur=B.rounds[B.ri];B.ms=[]
   if(isBot(t,a)&&isBot(t,b)){const w=rnd(2)?a:b;B.next[ix]=w;B.out[w===a?b:a]=B.ri+1;continue}
   const m={B,a,b,sa:0,sb:0,th:0,mv:{},dl:0,done:false,ix,last:null};B.ms.push(m);t.mOf[a]=m;t.mOf[b]=m;open(m)}
  if(!B.ms.length)endRound(B);else pushB(B)}
-function open(m){m.th++;m.mv={};m.dl=Date.now()+m.B.t.cfg.turn}
-function move(id,mv){const t=where.get(id);if(!t)return;const m=t.mOf[id];if(!m||m.done||m.B.ph!=="round"||!MV.includes(mv)||m.mv[id])return;
- m.mv[id]=mv;if([m.a,m.b].every(x=>isBot(t,x)||m.mv[x]))resolve(m);else push2(m)}
+// every throw ends with a short countdown (the hands shake), then both hands are shown at the same moment
+function open(m){m.th++;m.mv={};const n=Date.now(),base=m.th>1?n+REVEAL_MS:n;m.rv=m.th>1?base:0;m.dl=base+m.B.t.cfg.turn}
+function move(id,mv){const t=where.get(id);if(!t)return;const m=t.mOf[id];if(!m||m.done||m.fin||m.B.ph!=="round"||!MV.includes(mv)||m.mv[id]||Date.now()<m.rv)return;
+ m.mv[id]=mv;
+ if([m.a,m.b].every(x=>isBot(t,x)||m.mv[x]))m.dl=Math.min(m.dl,Date.now()+SHAKE_MS);   // both chose: only the countdown is left
+ push2(m)}
 function resolve(m){const t=m.B.t,need=t.cfg.need,pick=x=>isBot(t,x)?MV[rnd(3)]:m.mv[x];const A=pick(m.a),Bm=pick(m.b);let r;
  if(A&&Bm)r=A===Bm?0:BEATS[A]===Bm?1:-1;else if(A||Bm)r=A?1:-1;else r=0; // no pick = lose the point
  if(r===1)m.sa++;else if(r===-1)m.sb++;
  m.last={a:A||null,b:Bm||null,r};
- if(m.sa>=need||m.sb>=need)endMatch(m,m.sa>=need?m.a:m.b);else{open(m);push2(m)}}
+ if(m.sa>=need||m.sb>=need){m.fin=m.sa>=need?m.a:m.b;m.dl=Infinity;m.rv=m.finAt=Date.now()+REVEAL_MS;push2(m)}   // show the last throw before the match ends
+ else{open(m);push2(m)}}
 function endMatch(m,w){m.done=true;const l=w===m.a?m.b:m.a,B=m.B;B.next[m.ix]=w;B.out[l]=B.ri+1;push2(m);
  if(B.ms.every(x=>x.done))endRound(B)}
 function endRound(B){B.rounds.push(B.next);
@@ -106,15 +110,15 @@ function computeTop(t){const B=t.main,list=B.ids.map(id=>({id,o:id===t.champ?1e9
 function finish(t,id){t.ph="over";t.champ=id;t.overAt=Date.now()+t.cfg.over;t.top=computeTop(t);ping(t)}
 function humans(t,k){const out=[];for(const x of t.players.values()){if(!x.bot){out.push(x.name);if(out.length>=k)break}}return out}
 function tview(t,id){const p=t.players.get(id);
- const v={ph:t.ph,now:Date.now(),startsAt:t.startsAt,count:t.players.size,min:MIN,tm:t.cfg.turn,need:t.cfg.need,left:t.main?t.main.alive:0,ev:EVERY,q:PRE.has(id)};
+ const v={ph:t.ph,now:Date.now(),startsAt:t.startsAt,count:t.players.size,min:MIN,tm:t.cfg.turn,sh:SHAKE_MS,need:t.cfg.need,left:t.main?t.main.alive:0,ev:EVERY,q:PRE.has(id)};
  if(t.kind==="custom"){v.c={name:t.name,code:t.code,max:t.cfg.max,need:t.cfg.need,fill:!!t.cfg.fill,owner:t.owner===id,auto:!!t.startsAt,note:t.note,
    names:humans(t,60),n:[...t.players.values()].filter(x=>!x.bot).length};if(t.ph==="over")v.top=t.top}
  if(p){v.me={name:p.name,num:p.num,seat:0,out:0,won:false};const B=p.b;
-  if(B){v.b={kind:B.kind,idx:B.idx,ph:B.ph,sa:B.startAt,ri:B.ri,R:B.R,wu:B.wu,left:B.alive,size:B.size};
+  if(B){v.b={kind:B.kind,idx:B.idx,ph:B.ph,sa:B.startAt,ri:B.ri,R:B.R,wu:B.wu,left:B.ph==="wait"?B.next.filter(Boolean).length:B.alive,size:B.size};
    v.me.seat=B.seat[id]||0;v.me.out=B.out[id]||0;v.me.won=B.winner===id;
    const m=t.mOf[id];
    if(B.ph==="round"&&m&&m.B===B&&!m.done){const mine=m.a===id,o=t.players.get(mine?m.b:m.a),L=m.last;
-    v.m={opp:o.name,os:B.seat[o.id],ys:mine?m.sa:m.sb,ops:mine?m.sb:m.sa,dl:m.dl,th:m.th,moved:!!m.mv[id],
+    v.m={opp:o.name,os:B.seat[o.id],ys:mine?m.sa:m.sb,ops:mine?m.sb:m.sa,dl:m.dl===Infinity?0:m.dl,rv:m.rv||0,th:m.th,moved:!!m.mv[id],mine:m.mv[id]||null,
      last:L&&{me:mine?L.a:L.b,op:mine?L.b:L.a,r:mine?L.r:-L.r}}}
    else if(B.ph==="round"&&B.bye[id])v.bye=true}}
  if(t.champ){v.champ=t.players.get(t.champ).name;v.champMe=t.champ===id}
@@ -125,7 +129,7 @@ function view(id,mode){const mine=where.get(id);
   return{ph:"home",now:Date.now(),off:{ph:OFF.ph,startsAt:OFF.startsAt,count:OFF.players.size,joined:mine===OFF},priv:pr?{name:pr.name,code:pr.code,ph:pr.ph}:null}}
  if(mode==="private"){if(!mine||mine.kind!=="custom")return{ph:"menu",now:Date.now(),other:mine?{kind:"official"}:null};return tview(mine,id)}
  const v=tview(OFF,id);if(mine&&mine.kind==="custom")v.other={kind:"private",name:mine.name};return v}
-function send(id){const set=clients.get(id);if(!set)return;for(const c of set)c.res.write("data: "+JSON.stringify(view(id,c.mode))+"\n\n")}
+function send(id){const set=clients.get(id);if(!set)return;for(const c of set){try{c.res.write("data: "+JSON.stringify(view(id,c.mode))+"\n\n")}catch(e){}}}
 function pushAll(){for(const id of clients.keys())send(id)}
 function push2(m){send(m.a);send(m.b)}
 function pushB(B){for(const x of B.ids)send(x)}
@@ -138,14 +142,15 @@ function tickT(t,n){
  else if(t.ph==="run"){const B=t.main;
   if(B&&B.ph!=="done"){
    if(B.ph==="sched"){if(n>=B.startAt)startRound(B)}
-   else if(B.ph==="round"){for(const m of B.ms)if(!m.done&&n>=m.dl)resolve(m)}
+   else if(B.ph==="round"){for(const m of B.ms)if(!m.done){if(m.fin){if(n>=m.finAt)endMatch(m,m.fin)}else if(n>=m.dl)resolve(m)}}
    else if(B.ph==="wait"&&n>=B.wu){B.ri++;startRound(B)}}}
  else if((t.ph==="over"||t.ph==="cancelled")&&n>=t.overAt){
   if(t.kind==="official"){newOfficial();for(const[i,nm]of PRE)join(i,nm);PRE.clear();pushAll()}else disposeT(t)}}
 let l1=0,l5=0;
 setInterval(()=>{const n=Date.now();
- tickT(OFF,n);for(const t of[...tours.values()])tickT(t,n);
- if(n-l1>=1000){l1=n;const all=n-l5>=5000;if(all)l5=n;for(const id of clients.keys())if(all||active(id))send(id)}},200);
+ try{tickT(OFF,n)}catch(e){console.log("official tournament error:",e&&e.stack||e)}
+ for(const t of[...tours.values()]){try{tickT(t,n)}catch(e){console.log("private tournament error:",e&&e.stack||e)}}
+ try{if(n-l1>=1000){l1=n;const all=n-l5>=5000;if(all)l5=n;for(const id of clients.keys())if(all||active(id))send(id)}}catch(e){console.log("push error:",e&&e.stack||e)}},200);
 
 // ================= accounts (email + password), saved in a file =================
 const crypto=require("crypto");
@@ -176,17 +181,21 @@ function limited(key,max,win){const n=Date.now(),h=hits.get(key);if(!h||n>h.t){h
 setInterval(()=>{const n=Date.now();for(const[k,h]of hits)if(n>h.t)hits.delete(k)},60000);
 const ipOf=q=>String((q.headers["x-forwarded-for"]||"").split(",")[0].trim()||q.socket.remoteAddress);
 const J=(r,code,obj)=>{r.writeHead(code,{"Content-Type":"application/json","Cache-Control":"no-store"}).end(JSON.stringify(obj))};
-function body(q,cb){let b="",bad=false;q.on("data",c=>{b+=c;if(b.length>2000){bad=true;q.destroy()}});
+function body(q,cb){q.on("error",()=>{});let b="",bad=false;q.on("data",c=>{b+=c;if(b.length>2000){bad=true;q.destroy()}});
  q.on("end",()=>{if(bad)return;let d=null;try{d=JSON.parse(b||"{}")}catch(e){}cb(d&&typeof d==="object"?d:null)})}
 const pub=u=>({id:u.id,name:u.name,email:u.email||null,guest:!!u.guest});
-const GUESTS_PER_HOUR=N("GUESTS_PER_HOUR",30);
+const GUESTS_PER_HOUR=N("GUESTS_PER_HOUR",30),REG_PER_HOUR=N("REGISTER_PER_HOUR",30);
 // forget expired sessions and guests that have no live session (runs at start and every hour)
 function sweep(){const n=Date.now(),live=new Set();
  for(const k of Object.keys(DB.sessions)){if(DB.sessions[k].exp<n)delete DB.sessions[k];else live.add(DB.sessions[k].uid)}
  for(const u of Object.values(DB.users))if(u.guest&&!live.has(u.id)){delete DB.users[u.id];byName.delete(u.name)}
  save()}
 sweep();setInterval(sweep,3600000);
-http.createServer((q,r)=>{const u=new URL(q.url,"http://x"),P=u.pathname;
+process.on("uncaughtException",e=>console.log("uncaught error (server keeps running):",e&&e.stack||e));
+process.on("unhandledRejection",e=>console.log("unhandled error (server keeps running):",e&&e.stack||e));
+if(process.env.RENDER&&!E.DATA_DIR)console.log("WARNING: no DATA_DIR set. Accounts are erased every time Render restarts. Add a Persistent Disk and set DATA_DIR (see README).");
+const safeAsync=(r,fn)=>async d=>{try{await fn(d)}catch(e){console.log("handler error:",e&&e.stack||e);try{J(r,500,{error:"SERVER ERROR. TRY AGAIN."})}catch(x){}}};
+function handle(q,r){let u;try{u=new URL(String(q.url||"/").replace(/^\/{2,}/,"/"),"http://x")}catch(e){r.writeHead(400).end();return}const P=u.pathname;
  r.setHeader("X-Content-Type-Options","nosniff");r.setHeader("Referrer-Policy","same-origin");
  if(q.method==="POST"){const o=q.headers.origin;let bad=false;if(o){try{bad=new URL(o).host!==q.headers.host}catch(e){bad=true}}
   if(bad){J(r,403,{error:"BLOCKED REQUEST"});return}}
@@ -199,9 +208,9 @@ http.createServer((q,r)=>{const u=new URL(q.url,"http://x"),P=u.pathname;
   const user={id:"g"+crypto.randomBytes(8).toString("hex"),email:null,name,pw:null,guest:true,created:Date.now()};
   DB.users[user.id]=user;byName.set(name,user);
   setCookie(r,q,newSession(user.id),2592000);return J(r,200,{user:pub(user)})}
- if(P==="/api/register"&&q.method==="POST")return body(q,async d=>{
+ if(P==="/api/register"&&q.method==="POST")return body(q,safeAsync(r,async d=>{
   if(!d)return J(r,400,{error:"BAD REQUEST"});
-  if(limited("reg:"+ipOf(q),10,3600000))return J(r,429,{error:"TOO MANY TRIES. WAIT A BIT."});
+  if(limited("reg:"+ipOf(q),REG_PER_HOUR,3600000))return J(r,429,{error:"TOO MANY TRIES. WAIT A BIT."});
   const email=String(d.email||"").trim().toLowerCase(),name=String(d.name||"").trim().toUpperCase(),pw=String(d.password||"");
   if(email.length>254||!/^[^@\s]{1,64}@[^@\s]+\.[^@\s]+$/.test(email))return J(r,400,{error:"ENTER A VALID EMAIL"});
   if(!/^[A-Z0-9_]{3,12}$/.test(name))return J(r,400,{error:"NAME: 3-12 LETTERS, NUMBERS OR _"});
@@ -211,20 +220,20 @@ http.createServer((q,r)=>{const u=new URL(q.url,"http://x"),P=u.pathname;
   const user={id:"u"+crypto.randomBytes(8).toString("hex"),email,name,pw:await hashPw(pw),created:Date.now()};
   if(byEmail.has(email)||byName.has(name))return J(r,409,{error:"EMAIL OR NAME ALREADY TAKEN"});
   DB.users[user.id]=user;byEmail.set(email,user);byName.set(name,user);
-  setCookie(r,q,newSession(user.id),2592000);J(r,200,{user:pub(user)})});
- if(P==="/api/login"&&q.method==="POST")return body(q,async d=>{
+  setCookie(r,q,newSession(user.id),2592000);J(r,200,{user:pub(user)})}));
+ if(P==="/api/login"&&q.method==="POST")return body(q,safeAsync(r,async d=>{
   if(!d)return J(r,400,{error:"BAD REQUEST"});
   const email=String(d.email||"").trim().toLowerCase().slice(0,254),pw=String(d.password||"").slice(0,200);
   if(limited("li:"+ipOf(q),30,600000)||limited("le:"+email,10,600000))return J(r,429,{error:"TOO MANY TRIES. WAIT A BIT."});
   const user=byEmail.get(email),ok=await checkPw(pw,user?user.pw:FAKE_HASH);
   if(!user||!ok)return J(r,401,{error:"WRONG EMAIL OR PASSWORD"});
-  setCookie(r,q,newSession(user.id),2592000);J(r,200,{user:pub(user)})});
+  setCookie(r,q,newSession(user.id),2592000);J(r,200,{user:pub(user)})}));
  if(P==="/events"&&q.method==="GET"){const a=authUser(q);if(!a){J(r,401,{error:"NOT LOGGED IN"});return}
   const m=u.searchParams.get("mode"),mode=m==="home"||m==="private"?m:"official";
   let set=clients.get(a.id);if(!set)clients.set(a.id,set=new Set());
   while(set.size>=6){const o=set.values().next().value;set.delete(o);try{o.res.end()}catch(e){}}   // at most 6 open pages per player
   r.writeHead(200,{"Content-Type":"text/event-stream","Cache-Control":"no-cache","Connection":"keep-alive","X-Accel-Buffering":"no"});
-  const c={res:r,mode};set.add(c);q.on("close",()=>{set.delete(c);if(!set.size&&clients.get(a.id)===set)clients.delete(a.id)});
+  r.on("error",()=>{});const c={res:r,mode};set.add(c);q.on("close",()=>{set.delete(c);if(!set.size&&clients.get(a.id)===set)clients.delete(a.id)});
   r.write("data: "+JSON.stringify(view(a.id,mode))+"\n\n");return}
  if((P==="/join"||P==="/move")&&q.method==="POST"){const a=authUser(q);if(!a)return J(r,401,{error:"NOT LOGGED IN"});
   return body(q,d=>{if(!d)return J(r,400,{error:"BAD REQUEST"});
@@ -238,4 +247,5 @@ http.createServer((q,r)=>{const u=new URL(q.url,"http://x"),P=u.pathname;
    else if(act==="kick")res=tKick(a.id,d.name);else res={error:"UNKNOWN REQUEST"};
    send(a.id);J(r,res.error?400:200,res)})}
  if(P==="/"||P==="/official"||P==="/private"){r.writeHead(200,{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-cache"}).end(fs.readFileSync(path.join(__dirname,"index.html")));return}
- r.writeHead(404).end()}).listen(PORT,()=>console.log("RPS Kickoff running on port "+PORT+" (accounts saved in "+DATA_DIR+")"));
+ r.writeHead(404).end()}
+http.createServer((q,r)=>{r.on("error",()=>{});try{handle(q,r)}catch(e){console.log("request error:",e&&e.stack||e);try{if(!r.headersSent)r.writeHead(500);r.end()}catch(x){}}}).listen(PORT,()=>console.log("RPS Kickoff running on port "+PORT+" (accounts saved in "+DATA_DIR+")"));
