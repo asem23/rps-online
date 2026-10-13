@@ -2,7 +2,7 @@
 const http=require("http"),fs=require("fs"),path=require("path");
 const E=process.env,N=(k,d)=>+E[k]||d;
 const PORT=N("PORT",3000),EVERY=N("EVERY_MS",3600000),MIN_REG=N("MIN_REG_MS",300000),TURN_MS=N("TURN_MS",7000),WAIT_MS=N("WAIT_MS",5000),MIN=N("MIN_PLAYERS",8),
- FIRST_MS=N("FIRST_MS",20000),OVER_MS=N("OVER_MS",30000),NEED=3,MAX_CUSTOM=N("MAX_TOURNAMENTS",200),CUP_CAP=N("MAX_CUP_PLAYERS",1000),SHAKE_MS=N("SHAKE_MS",1500),REVEAL_MS=N("REVEAL_MS",1600);
+ FIRST_MS=N("FIRST_MS",20000),OVER_MS=N("OVER_MS",30000),NEED=3,MAX_CUSTOM=N("MAX_TOURNAMENTS",200),CUP_CAP=N("MAX_CUP_PLAYERS",1000),WIN_BY=N("WIN_BY",2),MAX_PTS=N("MAX_POINTS",11),SHAKE_MS=N("SHAKE_MS",1500),REVEAL_MS=N("REVEAL_MS",1600);
 const BOTN=["NOVA","ROCKY","PAPER","BLADE","PIXEL","ZERO","BYTE","STONE","SNIP","ACE","KING","TURBO","ECHO","MIKA"];
 const MV=["rock","paper","scissors"],BEATS={rock:"scissors",paper:"rock",scissors:"paper"};
 const rnd=n=>Math.floor(Math.random()*n);
@@ -91,11 +91,13 @@ function move(id,mv){const t=where.get(id);if(!t)return;const m=t.mOf[id];if(!m|
  m.mv[id]=mv;
  if([m.a,m.b].every(x=>isBot(t,x)||m.mv[x]))m.dl=Math.min(m.dl,Date.now()+SHAKE_MS);   // both chose: only the countdown is left
  push2(m)}
+// a match ends when someone has the needed points AND leads by 2 (or reaches the top score, 11, whatever the lead)
+function decided(a,b,need){const hi=Math.max(a,b),lo=Math.min(a,b);return hi>=MAX_PTS||(hi>=need&&hi-lo>=WIN_BY)}
 function resolve(m){const t=m.B.t,need=t.cfg.need,pick=x=>isBot(t,x)?MV[rnd(3)]:m.mv[x];const A=pick(m.a),Bm=pick(m.b);let r;
  if(A&&Bm)r=A===Bm?0:BEATS[A]===Bm?1:-1;else if(A||Bm)r=A?1:-1;else r=0; // no pick = lose the point
  if(r===1)m.sa++;else if(r===-1)m.sb++;
  m.last={a:A||null,b:Bm||null,r};
- if(m.sa>=need||m.sb>=need){m.fin=m.sa>=need?m.a:m.b;m.dl=Infinity;m.rv=m.finAt=Date.now()+REVEAL_MS;push2(m)}   // show the last throw before the match ends
+ if(decided(m.sa,m.sb,need)){m.fin=m.sa>m.sb?m.a:m.b;m.dl=Infinity;m.rv=m.finAt=Date.now()+REVEAL_MS;push2(m)}   // show the last throw before the match ends
  else{open(m);push2(m)}}
 function endMatch(m,w){m.done=true;const l=w===m.a?m.b:m.a,B=m.B;B.next[m.ix]=w;B.out[l]=B.ri+1;push2(m);
  if(B.ms.every(x=>x.done))endRound(B)}
@@ -110,7 +112,7 @@ function computeTop(t){const B=t.main,list=B.ids.map(id=>({id,o:id===t.champ?1e9
 function finish(t,id){t.ph="over";t.champ=id;t.overAt=Date.now()+t.cfg.over;t.top=computeTop(t);ping(t)}
 function humans(t,k){const out=[];for(const x of t.players.values()){if(!x.bot){out.push(x.name);if(out.length>=k)break}}return out}
 function tview(t,id){const p=t.players.get(id);
- const v={ph:t.ph,now:Date.now(),startsAt:t.startsAt,count:t.players.size,min:MIN,tm:t.cfg.turn,sh:SHAKE_MS,need:t.cfg.need,left:t.main?t.main.alive:0,ev:EVERY,q:PRE.has(id)};
+ const v={ph:t.ph,now:Date.now(),startsAt:t.startsAt,count:t.players.size,min:MIN,tm:t.cfg.turn,sh:SHAKE_MS,need:t.cfg.need,wb:WIN_BY,mx:MAX_PTS,left:t.main?t.main.alive:0,ev:EVERY,q:PRE.has(id)};
  if(t.kind==="custom"){v.c={name:t.name,code:t.code,max:t.cfg.max,need:t.cfg.need,fill:!!t.cfg.fill,owner:t.owner===id,auto:!!t.startsAt,note:t.note,
    names:humans(t,60),n:[...t.players.values()].filter(x=>!x.bot).length};if(t.ph==="over")v.top=t.top}
  if(p){v.me={name:p.name,num:p.num,seat:0,out:0,won:false};const B=p.b;
