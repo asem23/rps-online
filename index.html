@@ -97,7 +97,7 @@ a.btn{display:block}
 .move.sel{box-shadow:0 0 0 4px var(--gold),0 0 20px 6px rgba(255,210,63,.8)}.move.sel:disabled{opacity:1;filter:none}
 .msg{min-height:56px;margin-top:16px;text-align:center;font-size:19px;text-shadow:0 2px 0 rgba(0,0,0,.55)}
 .msg.w{color:#a6ff6e}.msg.l{color:#ff8a7a}
-@media (max-width:480px){main{padding:16px 6px 40px}.win{padding:6px}.panel{--pp:12px}}
+@media (max-width:480px){main{padding:16px 6px 40px}.win{padding:6px}.panel{--pp:12px}.brand{font-size:13px;gap:4px}.brand svg{width:24px;height:24px}.snd{padding:2px 6px 3px;font-size:11px}.bar{gap:5px}}
 .huge{display:flex;align-items:center;justify-content:center;min-height:45vh;text-align:center;font-size:clamp(54px,19vw,110px);line-height:1;margin:0 0 16px;}
 .huge.red{color:#ff5d4e}.huge.grn{color:var(--gold)}
 .brand,.snd,h1,.btn,.big,.score,.vsx,.move,.huge{text-shadow:calc(var(--o)*1) calc(var(--o)*0) 0 var(--out),calc(var(--o)*-1) calc(var(--o)*0) 0 var(--out),calc(var(--o)*0) calc(var(--o)*1) 0 var(--out),calc(var(--o)*0) calc(var(--o)*-1) 0 var(--out),calc(var(--o)*0.71) calc(var(--o)*0.71) 0 var(--out),calc(var(--o)*0.71) calc(var(--o)*-0.71) 0 var(--out),calc(var(--o)*-0.71) calc(var(--o)*0.71) 0 var(--out),calc(var(--o)*-0.71) calc(var(--o)*-0.71) 0 var(--out),calc(var(--o)*0.5) calc(var(--o)*0.0) 0 var(--out),calc(var(--o)*-0.5) calc(var(--o)*0.0) 0 var(--out),calc(var(--o)*0.0) calc(var(--o)*0.5) 0 var(--out),calc(var(--o)*0.0) calc(var(--o)*-0.5) 0 var(--out),calc(var(--o)*0.355) calc(var(--o)*0.355) 0 var(--out),calc(var(--o)*0.355) calc(var(--o)*-0.355) 0 var(--out),calc(var(--o)*-0.355) calc(var(--o)*0.355) 0 var(--out),calc(var(--o)*-0.355) calc(var(--o)*-0.355) 0 var(--out),0 calc(var(--o) + 3px) 0 rgba(0,0,0,.35)}
@@ -115,6 +115,41 @@ html[lang=ar] .lbl,html[lang=ar] .msg,html[lang=ar] .names li,html[lang=ar] .vs>
 html[dir=rtl] .vs>div,html[dir=rtl] .vsx.res{direction:rtl}
 html[dir=rtl] input.raw{direction:ltr}
 html[dir=rtl] .kick{margin-left:0;margin-right:6px}
+
+.btn.pro{background:linear-gradient(#ecdcff,#a97ff4 55%,#7a4bd8);margin-top:14px}
+.av{display:flex;align-items:center;justify-content:center;border-radius:50%;border:4px solid var(--out);background:linear-gradient(#9d6cf4,#5a2fc0);box-shadow:inset 0 3px 0 rgba(255,255,255,.4),0 0 0 4px var(--gold);flex:none}
+.pf-top{display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:12px}
+.pf-name{font-size:clamp(24px,7vw,34px);color:#fff;text-shadow:0 3px 0 var(--out);overflow-wrap:anywhere}
+.pf-bio{margin:10px 0 0;text-align:center;font-size:17px;color:#f2eaff;text-shadow:0 2px 0 rgba(0,0,0,.5);overflow-wrap:anywhere}
+.xpb{height:18px;background:#1d1038;border:3px solid var(--out);border-radius:10px;overflow:hidden}
+.xpb i{display:block;height:100%;background:linear-gradient(#ffe98a,#f7ae1c 60%,#e08a0a);box-shadow:inset 0 3px 0 rgba(255,255,255,.55)}
+.sg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.sg.two{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:8px}
+.sc{background:linear-gradient(#4a2792,#341b72);border:3px solid var(--out);border-radius:12px;padding:8px 4px;text-align:center;box-shadow:inset 0 3px 0 rgba(255,255,255,.12)}
+.sc b{display:block;font-size:clamp(20px,6vw,28px);font-weight:400;color:var(--gold);text-shadow:0 2px 0 var(--out);line-height:1.2;overflow-wrap:anywhere}
+.sc span{display:block;font-size:13px;color:#f2eaff;line-height:1.25}.sc.wide{padding:10px}.sc.wide b{font-size:34px}
+.avg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:6px}
+.avb{font:inherit;background:none;border:3px solid transparent;border-radius:50%;padding:2px;cursor:pointer;display:flex;justify-content:center}
+.avb.sel{border-color:var(--gold);box-shadow:0 0 12px var(--gold)}.avb .av{box-shadow:none;border-width:3px}
+.bars{margin-top:8px}.br{display:flex;align-items:center;gap:8px;margin:6px 0;direction:ltr}
+.br span{flex:0 0 74px;font-size:12px}.br em{flex:0 0 40px;font-style:normal;font-size:13px;text-align:right}
+.bb{flex:1;height:14px;background:#1d1038;border:3px solid var(--out);border-radius:8px;overflow:hidden}.bb i{display:block;height:100%}
+.b0{background:linear-gradient(#ffa28f,#e4503f)}.b1{background:linear-gradient(#9adcff,#3395e0)}.b2{background:linear-gradient(#b4f27c,#4eae25)}
+.bl,.hl{list-style:none;margin:0;padding:0}
+.bl li{display:flex;align-items:center;gap:10px;background:linear-gradient(#4a2792,#341b72);border:3px solid var(--out);border-radius:12px;padding:6px 8px;margin-bottom:6px;opacity:.5;filter:grayscale(.8)}
+.bl li.on{opacity:1;filter:none}
+.bl i{flex:none;width:44px;height:44px;border-radius:50%;border:3px solid var(--out);background:linear-gradient(#ffe27a,#f5a623);color:#fff;font-style:normal;display:flex;align-items:center;justify-content:center;font-size:16px;text-shadow:0 2px 0 var(--out)}
+.bl li:not(.on) i{background:linear-gradient(#8a7fa8,#5b5078)}
+.bl b{display:block;font-weight:400;font-size:16px}.bl small{display:block;font-size:12px;opacity:.85;line-height:1.25}
+.hl li{display:flex;align-items:center;gap:10px;background:linear-gradient(#4a2792,#341b72);border:3px solid var(--out);border-radius:12px;padding:6px 8px;margin-bottom:6px}
+.chip{flex:none;min-width:54px;text-align:center;border:3px solid var(--out);border-radius:10px;padding:2px 6px;font-size:14px;color:#fff;text-shadow:0 2px 0 var(--out)}
+.chip.w{background:linear-gradient(#b4f27c,#4eae25)}.chip.l{background:linear-gradient(#ff9a8c,#d9443a)}
+.hm{flex:1;min-width:0}.hm b{display:block;font-weight:400;font-size:16px;overflow-wrap:anywhere}.hm small{display:block;font-size:12px;opacity:.85;line-height:1.25}
+.hs{flex:none;font-size:20px;color:var(--gold);text-shadow:0 2px 0 var(--out)}
+
+.or{display:flex;align-items:center;gap:10px;margin:18px 0 6px;color:#f2eaff;font-size:16px}.or:before,.or:after{content:"";flex:1;height:3px;background:rgba(255,255,255,.25);border-radius:2px}
+.btn.soc{display:flex;align-items:center;justify-content:center;gap:12px;font-size:19px;margin-top:10px;padding:8px 12px 10px;text-shadow:none;background-image:none;box-shadow:inset 0 3px 0 rgba(255,255,255,.35),inset 0 -5px 0 rgba(0,0,0,.14),0 5px 0 rgba(0,0,0,.45)}
+.btn.soc svg{width:26px;height:26px;flex:none}
+.btn.soc.google{background-color:#fff;color:#3c4043}.btn.soc.apple{background-color:#111;color:#fff}.btn.soc.facebook{background-color:#1877f2;color:#fff}
 </style>
 </head>
 <body>
@@ -157,7 +192,7 @@ function icon(m,px){var d=BMP[m],a="",b="";
  return'<svg width="'+9*px+'" height="'+9*px+'" viewBox="0 0 9 9" shape-rendering="crispEdges"><g fill="rgba(0,0,0,.35)">'+a+'</g><g fill="currentColor">'+b+'</g></svg>'}
 
 var s=null,off=0,key="",user=null,es=null,ui=null;
-var PATH=location.pathname.replace(/\/+$/,""),MODE=PATH==="/official"?"official":PATH==="/private"?"private":"home";
+var PATH=location.pathname.replace(/\/+$/,""),MODE=PATH==="/official"?"official":PATH==="/private"?"private":PATH==="/profile"?"profile":"home";
 var nav=function(p){location.href=p};
 function $(i){return document.getElementById(i)}
 // ===== language: Arabic (default) or English. The screen is translated as it is drawn. =====
@@ -171,6 +206,17 @@ var AR={
 "NAME: 3-12 LETTERS, NUMBERS OR _":"الاسم: من 3 لـ 12 حرف إنجليزي أو رقم أو _","PASSWORD: AT LEAST 8 CHARACTERS":"كلمة السر: 8 خانات على الأقل","EMAIL ALREADY REGISTERED":"هذا البريد مسجّل من قبل",
 "NAME ALREADY TAKEN":"هذا الاسم مأخوذ","EMAIL OR NAME ALREADY TAKEN":"البريد أو الاسم مأخوذ","WRONG EMAIL OR PASSWORD":"البريد أو كلمة السر غلط","TOO MANY GUESTS FROM HERE. TRY LATER.":"ضيوف كثيرين من هون. جرّب لاحقاً.",
 "BLOCKED REQUEST":"الطلب محظور","SERVER ERROR. TRY AGAIN.":"خطأ بالسيرفر. جرّب مرة ثانية.","UNKNOWN REQUEST":"طلب غير معروف",
+"OR":"أو","CONTINUE WITH GOOGLE":"المتابعة عبر Google","CONTINUE WITH APPLE":"المتابعة عبر Apple","CONTINUE WITH FACEBOOK":"المتابعة عبر Facebook","ONE LAST STEP":"خطوة أخيرة","CHOOSE YOUR PLAYER NAME":"اختر اسم لاعبك","CREATE MY PLAYER":"أنشئ لاعبي",
+"THIS SIGN-IN OPTION IS NOT ACTIVE YET":"خيار الدخول هذا غير مفعّل بعد","SIGN-IN FAILED OR WAS CANCELLED. TRY AGAIN.":"فشل تسجيل الدخول أو تم إلغاؤه. جرّب مرة ثانية.","SIGN-IN EXPIRED. TRY AGAIN.":"انتهت صلاحية تسجيل الدخول. جرّب مرة ثانية.","NO SIGN-IN WAITING":"ما في تسجيل دخول معلّق",
+
+"PROFILE":"الملف الشخصي","STATS · LEVEL · BADGES":"الإحصائيات · المستوى · الأوسمة","SIGN UP TO SAVE YOUR STATS, LEVEL AND BADGES":"سجّل حساب لتحفظ إحصائياتك ومستواك وأوسمتك","PROFILES ARE FOR REGISTERED PLAYERS":"الملفات الشخصية للاعبين المسجّلين فقط","BAD AVATAR":"صورة غير صحيحة",
+"EDIT PROFILE":"عدّل ملفك","SAVE":"احفظ","CANCEL":"إلغاء","CHOOSE YOUR AVATAR":"اختر صورتك","ABOUT YOU":"نبذة عنك","about you":"اكتب نبذة قصيرة عنك",
+"BEST RANK":"أفضل مرتبة","NO TOURNAMENT YET":"ما لعبت بطولة بعد","OFFICIAL":"الرسمية","MATCHES":"المباريات","WINS":"الانتصارات","LOSSES":"الخسائر","WIN RATE":"نسبة الفوز","TOURNAMENTS":"البطولات","CUPS":"الكؤوس","BEST STREAK":"أطول سلسلة","CURRENT STREAK":"السلسلة الحالية","POINTS SCORED":"النقاط المسجّلة",
+"PLAY STYLE":"أسلوب اللعب","NO THROWS YET":"ما في رميات بعد","FAVORITE HAND":"حركتك المفضلة","AVERAGE PICK SPEED":"متوسط سرعة الاختيار","MISSED PICKS":"اختيارات فائتة","BADGES":"الأوسمة","LAST MATCHES":"آخر المباريات","NO MATCHES YET":"ما في مباريات بعد","WIN":"فوز","LOSS":"خسارة",
+"FIRST WIN":"أول فوز","WIN YOUR FIRST MATCH":"افز بأول مباراة","10 WINS":"10 انتصارات","WIN 10 MATCHES":"افز بـ 10 مباريات","50 WINS":"50 انتصاراً","WIN 50 MATCHES":"افز بـ 50 مباراة","WIN STREAK":"سلسلة انتصارات","WIN 5 MATCHES IN A ROW":"افز بـ 5 مباريات ورا بعض",
+"FLAWLESS":"فوز نظيف","WIN WITHOUT LOSING A POINT (3 OR MORE)":"افز بدون ما تخسر نقطة (3 نقاط أو أكثر)","COMEBACK":"قلبت المباراة","WIN AFTER TRAILING BY 2 POINTS":"افز بعد ما كنت متأخر بنقطتين","WIN A TOURNAMENT":"افز ببطولة",
+"ON THE PODIUM":"على المنصة","FINISH IN THE TOP 3":"انهِ بين أول 3","VETERAN":"خبير","PLAY 25 MATCHES":"العب 25 مباراة","FAST HANDS":"إيدين سريعة","PICK IN UNDER 1.2 SECONDS ON AVERAGE (30 THROWS)":"اختيارك أقل من 1.2 ثانية بالمتوسط (30 رمية)",
+
 "GUESTS CANNOT CREATE TOURNAMENTS. SIGN UP FIRST.":"الضيف ما بيقدر ينشئ بطولة. سجّل حساب أولاً.","LEAVE YOUR CURRENT TOURNAMENT FIRST":"اخرج من بطولتك الحالية أولاً","SERVER IS BUSY. TRY LATER.":"السيرفر مشغول. جرّب لاحقاً.",
 "NAME: 3-24 LETTERS OR NUMBERS":"الاسم: من 3 لـ 24 حرف إنجليزي أو رقم","PLEASE CHOOSE ANOTHER NAME":"اختر اسم ثاني","NO TOURNAMENT WITH THAT CODE":"ما في بطولة بهالكود",
 "YOU WERE REMOVED FROM THIS TOURNAMENT":"تم طردك من هذه البطولة","THIS TOURNAMENT ALREADY STARTED":"هذه البطولة بدأت من قبل","THIS TOURNAMENT IS FULL":"هذه البطولة ممتلئة","ONLY THE OWNER CAN DO THIS":"بس صاحب البطولة بيقدر يعمل هذا",
@@ -197,6 +243,8 @@ function ar_every(x){var m=x.match(/^EVERY (\d+) (SEC|MIN|HOURS?)$/);if(x==="EVE
 var BEATS_AR={ROCK:"الحجر",PAPER:"الورقة",SCISSORS:"المقص"},BEATS_VERB={"ROCK|SCISSORS":"الحجر يكسر المقص","PAPER|ROCK":"الورقة تغطي الحجر","SCISSORS|PAPER":"المقص يقص الورقة"};
 var RANKS={"1ST":"الأول","2ND":"الثاني","3RD":"الثالث","4TH":"الرابع"};
 var RULES=[
+[/^SIGNED IN WITH (.+)$/,function(m){return"تم الدخول عبر "+m[1].charAt(0)+m[1].slice(1).toLowerCase()}],
+[/^LEVEL (\d+)$/,function(m){return"المستوى "+m[1]}],[/^(\d+) \/ (\d+) XP$/,function(m){return m[1]+" / "+m[2]+" نقطة خبرة"}],[/^OF (\d+) PLAYERS$/,function(m){return"من "+m[1]+" لاعب"}],[/^([\d.]+) SEC$/,function(m){return m[1]+" ث"}],
 [/^HELLO, (.+)$/,function(m){return"أهلاً "+m[1]}],[/^(.+), READY\?$/,function(m){return m[1]+"، جاهز؟"}],[/^WELCOME, (.+)\.$/,function(m){return"أهلاً "+m[1]+"."}],
 [/^YOUR SEAT #([\d,]+) · ([\d,]+) PLAYERS$/,function(m){return"مقعدك #"+m[1]+" · "+m[2]+" لاعب"}],[/^SEAT #([\d,]+)$/,function(m){return"مقعد #"+m[1]}],[/^(.+) · SEAT #([\d,]+)$/,function(m){return trCore(m[1])+" · مقعد #"+m[2]}],
 [/^YOU ARE THROUGH · SEAT #([\d,]+)$/,function(m){return"أنت متأهل · مقعد #"+m[1]}],[/^PLAYERS LEFT (.+)$/,function(m){return"المتبقّون: "+m[1]}],[/^YOU ARE IN: (.+)$/,function(m){return"أنت داخل: "+m[1]}],
@@ -229,7 +277,7 @@ function applyLang(first){var ar=LANG==="ar",h=document.documentElement;h.lang=a
  var b=document.getElementById("lang");if(b){b.textContent=ar?"EN":"عربي";b.setAttribute("aria-label",ar?"English":"العربية")}
  if(ar)trTree(document.body);else enRestore(document.body);
  if(first)return;window._nosfx=1;
- if(!user)showAuth(window._am||"login");else if(ui==="create")showCreate();else if(ui==="code")showCode();else{key="";if(s)render()}
+ if(!user){if(key==="finish")showFinish(window._fp);else showAuth(window._am||"login")}else if(MODE==="profile")showProfile();else if(ui==="create")showCreate();else if(ui==="code")showCode();else{key="";if(s)render()}
  setTimeout(function(){window._nosfx=0},50)}
 
 function fmt(n){return n.toLocaleString("en-US")}
@@ -249,11 +297,11 @@ function act(path,o,b){if(b)b.disabled=true;
   return x.json().then(function(d){return{ok:x.ok,d:d}},function(){return{ok:false,d:{}}})}).then(function(x){
   if(b)b.disabled=false;if(!x.ok){var e=$("err");if(e)e.textContent=x.d.error||"TRY AGAIN";play("error")}})}
 function backLnk(){return'<a class="lnk" href="/" data-go="/">BACK TO MENU</a>'}
-function goBtn(p,t,alt){return'<a class="btn'+(alt?' alt':'')+'" href="'+p+'" data-go="'+p+'">'+t+'</a>'}
+function goBtn(p,t,alt){return'<a class="btn'+(alt===2?' pro':alt?' alt':'')+'" href="'+p+'" data-go="'+p+'">'+t+'</a>'}
 function homeScreen(){var o=s.off,p=s.priv;
  return["h"+(o.joined?1:0)+(p?p.code:""),'<h1>MENU</h1><div class="lbl c" style="margin-bottom:18px">HELLO, '+user.name+'</div>'
   +goBtn("/official","OFFICIAL TOURNAMENT")+'<div class="lbl c" style="margin:8px 0 22px" id="hoff"></div>'
-  +goBtn("/private","PRIVATE TOURNAMENT",1)+'<div class="lbl c" style="margin:8px 0">'+(p?'YOU ARE IN: '+p.name:'PLAY WITH FRIENDS USING A CODE')+'</div>']}
+  +goBtn("/private","PRIVATE TOURNAMENT",1)+'<div class="lbl c" style="margin:8px 0 22px">'+(p?'YOU ARE IN: '+p.name:'PLAY WITH FRIENDS USING A CODE')+'</div>'+goBtn("/profile","PROFILE",2)+'<div class="lbl c" style="margin:8px 0">'+(user.guest?'SIGN UP TO SAVE YOUR STATS, LEVEL AND BADGES':'STATS · LEVEL · BADGES')+'</div>']}
 function otherScreen(){var pr=s.other.kind==="private";
  return["oth"+s.other.kind,'<h1>BUSY</h1><div class="info"><div class="lbl">YOU ARE IN '+(pr?'A PRIVATE TOURNAMENT':'THE OFFICIAL TOURNAMENT')+'</div>'+(pr&&s.other.name?'<div class="lbl">'+s.other.name+'</div>':'')+'<div class="lbl" style="margin-top:10px">FINISH OR LEAVE IT FIRST</div></div>'+goBtn(pr?"/private":"/official","GO THERE")+backLnk()]}
 function privMenu(){return'<h1>PRIVATE</h1><div class="lbl c" style="margin-bottom:16px">PLAY WITH FRIENDS USING A CODE</div>'
@@ -277,15 +325,75 @@ function showCode(){ui="code";key="ui";
  $("view").innerHTML='<h1>JOIN</h1><div class="lbl c">ENTER THE 6 CHARACTER CODE</div><div class="pillw" style="margin-top:12px"><input class="raw" id="jc" maxlength="6" autocomplete="off" placeholder="ABC234" aria-label="tournament code" style="text-transform:uppercase;text-align:center;font-size:20px"></div><button class="btn" id="jgo">JOIN</button><div class="msg l" id="err"></div><button class="lnk" id="jbk">BACK</button>';
  $("jgo").onclick=function(){act("/api/t/join",{code:$("jc").value},this)};
  $("jc").onkeydown=function(e){if(e.key==="Enter")$("jgo").click()};$("jbk").onclick=closeUi}
+
+// ===== profile page =====
+var AVS={heart:'<path d="M12 21C5 15 2 11 2 7.5C2 4.5 4.5 2.5 7 2.5C9 2.5 11 3.7 12 5.6C13 3.7 15 2.5 17 2.5C19.5 2.5 22 4.5 22 7.5C22 11 19 15 12 21Z"/>',
+ diamond:'<path d="M12 1.5L21 12L12 22.5L3 12Z"/>',
+ spade:'<path d="M12 2C6 9 2.5 11.5 2.5 15.2C2.5 18 4.8 19.6 7 19.6C8.7 19.6 10.2 18.8 11 17.5C10.8 20 10 21.5 8 22.5H16C14 21.5 13.2 20 13 17.5C13.8 18.8 15.3 19.6 17 19.6C19.2 19.6 21.5 18 21.5 15.2C21.5 11.5 18 9 12 2Z"/>',
+ club:'<circle cx="12" cy="7" r="5.2"/><circle cx="6.8" cy="14" r="5.2"/><circle cx="17.2" cy="14" r="5.2"/><path d="M12 13C12 18 11 20.5 8.5 22.5H15.5C13 20.5 12 18 12 13Z"/>',
+ crown:'<path d="M3 19V8L8 13L12 5L16 13L21 8V19Z"/>',star:'<path d="M12 2L15 9L22 9.6L16.7 14.4L18.3 21.5L12 17.8L5.7 21.5L7.3 14.4L2 9.6L9 9Z"/>',bolt:'<path d="M13 2L4 14H10L9 22L19 9H13Z"/>'};
+function avHtml(id,sz){var inner=(id==="rock"||id==="paper"||id==="scissors")?'<div class="ico i-'+id+'" style="width:80%;height:80%"></div>':'<svg viewBox="0 0 24 24" width="60%" height="60%" fill="#ffd23f" stroke="#1c0b3a" stroke-width="1.7" stroke-linejoin="round">'+(AVS[id]||AVS.crown)+'</svg>';
+ return'<div class="av" style="width:'+sz+'px;height:'+sz+'px">'+inner+'</div>'}
+var BDG=[["first_win","1","FIRST WIN","WIN YOUR FIRST MATCH"],["wins_10","10","10 WINS","WIN 10 MATCHES"],["wins_50","50","50 WINS","WIN 50 MATCHES"],["streak_5","x5","WIN STREAK","WIN 5 MATCHES IN A ROW"],
+ ["flawless","3-0","FLAWLESS","WIN WITHOUT LOSING A POINT (3 OR MORE)"],["comeback","2+","COMEBACK","WIN AFTER TRAILING BY 2 POINTS"],["champion","1st","CHAMPION","WIN A TOURNAMENT"],["podium","3","ON THE PODIUM","FINISH IN THE TOP 3"],
+ ["veteran","25","VETERAN","PLAY 25 MATCHES"],["fast",">>","FAST HANDS","PICK IN UNDER 1.2 SECONDS ON AVERAGE (30 THROWS)"]];
+function dayStr(t){return new Date(t).toLocaleDateString(LANG==="ar"?"ar-u-nu-latn":[],{day:"numeric",month:"short"})}
+function roundOf(r,R){var x=R-r+1;return x===1?"FINAL":x===2?"SEMI-FINAL":x===3?"QUARTER-FINAL":"ROUND "+r+" OF "+R}
+function showProfile(){key="profile";$("view").innerHTML='<h1>PROFILE</h1><div class="c lbl">...</div>';
+ fetch("/api/profile").then(function(r){return r.ok?r.json():null}).then(function(d){if(!d){checkAuth();return}drawProfile(d,false)}).catch(function(){})}
+function drawProfile(d,edit){key="profile";
+ if(d.guest){$("view").innerHTML='<h1>PROFILE</h1><div class="info"><div class="lbl">PROFILES ARE FOR REGISTERED PLAYERS</div><div class="lbl" style="margin-top:10px">SIGN UP TO SAVE YOUR STATS, LEVEL AND BADGES</div></div>'+backLnk();bind();return}
+ window._prof=d;var pct=d.xn>d.xc?Math.round((d.xp-d.xc)*100/(d.xn-d.xc)):0,h='<h1>PROFILE</h1>';
+ h+='<div class="pf-top">'+avHtml(d.av,96)+'<div><div class="pf-name">'+d.name+'</div><div class="lbl">LEVEL '+d.lvl+'</div></div></div>'
+  +'<div class="xpb"><i style="width:'+pct+'%"></i></div><div class="lbl c" style="margin-top:4px">'+(d.xp-d.xc)+' / '+(d.xn-d.xc)+' XP</div>';
+ if(edit){
+  h+='<div class="lbl" style="margin-top:14px">CHOOSE YOUR AVATAR</div><div class="avg">'+["rock","paper","scissors","heart","diamond","spade","club","crown","star","bolt"].map(function(a){return'<button class="avb'+(a===d.av?' sel':'')+'" data-a="'+a+'" aria-label="'+a+'">'+avHtml(a,54)+'</button>'}).join("")+'</div>'
+   +'<div class="lbl" style="margin-top:12px">ABOUT YOU</div><div class="pillw"><input id="pbio" maxlength="60" autocomplete="off" placeholder="about you" aria-label="about you" value="'+d.bio.replace(/"/g,"&quot;")+'"></div>'
+   +'<button class="btn" id="psave">SAVE</button><div class="msg l" id="err"></div><button class="lnk" id="pcancel">CANCEL</button>';
+ }else{
+  if(d.bio)h+='<div class="pf-bio">'+d.bio.replace(/</g,"&lt;")+'</div>';
+  h+='<button class="btn alt" id="pedit" style="margin-top:12px">EDIT PROFILE</button>'
+   +'<div class="lbl" style="margin:16px 0 6px">BEST RANK</div><div class="sc wide">'+(d.br?'<b>#'+d.br+'</b><span>OF '+d.bri.of+' PLAYERS</span><span>'+(d.bri.tn||"OFFICIAL")+'</span>':'<span>NO TOURNAMENT YET</span>')+'</div>'
+   +'<div class="sg" style="margin-top:8px">'+[["MATCHES",d.m],["WINS",d.w],["LOSSES",d.l],["WIN RATE",d.wr+"%"],["TOURNAMENTS",d.tp],["CUPS",d.tw],["BEST STREAK",d.bs],["CURRENT STREAK",d.s],["POINTS SCORED",d.pf]].map(function(x){return'<div class="sc"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>'}).join("")+'</div>';
+  var tot=d.th[0]+d.th[1]+d.th[2];h+='<div class="lbl" style="margin:16px 0 6px">PLAY STYLE</div>';
+  if(!tot)h+='<div class="sc wide"><span>NO THROWS YET</span></div>';
+  else{var mx=Math.max(d.th[0],d.th[1],d.th[2]),fav=["rock","paper","scissors"][d.th.indexOf(mx)];
+   h+='<div class="sc wide"><span>FAVORITE HAND</span><div class="ico i-'+fav+'" style="height:56px;margin:4px auto 0;width:90px"></div></div><div class="bars">'
+    +["rock","paper","scissors"].map(function(k,i){var p=Math.round(d.th[i]*100/tot);return'<div class="br"><span>'+k.toUpperCase()+'</span><div class="bb"><i class="b'+i+'" style="width:'+p+'%"></i></div><em>'+p+'%</em></div>'}).join("")+'</div>'
+    +'<div class="sg two"><div class="sc"><b>'+(d.avg/1000).toFixed(2)+' SEC</b><span>AVERAGE PICK SPEED</span></div><div class="sc"><b>'+d.to+'</b><span>MISSED PICKS</span></div></div>'}
+  h+='<div class="lbl" style="margin:16px 0 6px">BADGES</div><ul class="bl">'+BDG.map(function(b){var on=d.b.indexOf(b[0])>-1;return'<li class="'+(on?'on':'')+'"><i>'+b[1]+'</i><div><b>'+b[2]+'</b><small>'+b[3]+'</small></div></li>'}).join("")+'</ul>'
+   +'<div class="lbl" style="margin:16px 0 6px">LAST MATCHES</div>';
+  if(!d.h.length)h+='<div class="sc wide"><span>NO MATCHES YET</span></div>';
+  else h+='<ul class="hl">'+d.h.map(function(x){return'<li><span class="chip '+(x.w?'w':'l')+'">'+(x.w?'WIN':'LOSS')+'</span><div class="hm"><b dir="ltr">'+x.o+'</b><small><span>'+(x.tn||"OFFICIAL")+'</span> · <span>'+roundOf(x.r,x.R)+'</span> · '+dayStr(x.t)+'</small></div><div class="hs" dir="ltr">'+x.a+' - '+x.b+'</div></li>'}).join("")+'</ul>';
+  h+=backLnk()}
+ $("view").innerHTML=h;bind();
+ var e=$("pedit");if(e)e.onclick=function(){drawProfile(d,true)};
+ e=$("pcancel");if(e)e.onclick=function(){drawProfile(d,false)};
+ var sel=d.av;[].forEach.call(document.querySelectorAll(".avb"),function(b){b.onclick=function(){sel=b.dataset.a;[].forEach.call(document.querySelectorAll(".avb"),function(x){x.classList.toggle("sel",x===b)})}});
+ e=$("psave");if(e)e.onclick=function(){e.disabled=true;post("/api/profile",{av:sel,bio:$("pbio").value}).then(function(x){if(!x)return{ok:false,d:{error:"CONNECTION PROBLEM. TRY AGAIN."}};return x.json().then(function(j){return{ok:x.ok,d:j}},function(){return{ok:false,d:{}}})}).then(function(x){if(x.ok)drawProfile(x.d,false);else{e.disabled=false;$("err").textContent=x.d.error||"TRY AGAIN";play("error")}})}}
+
+// ===== sign in with Google / Apple / Facebook (the buttons only show for what the server has set up) =====
+var PROVIDERS=null,SOCI={google:'<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>',apple:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z"/></svg>',facebook:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>'},SOCT={google:"CONTINUE WITH GOOGLE",apple:"CONTINUE WITH APPLE",facebook:"CONTINUE WITH FACEBOOK"};
+function withProviders(cb){if(PROVIDERS){cb(PROVIDERS);return}fetch("/api/providers").then(function(r){return r.json()}).then(function(d){PROVIDERS=d;cb(d)}).catch(function(){PROVIDERS={};cb(PROVIDERS)})}
+function socialFill(){withProviders(function(P){var e=$("soc");if(!e)return;var h="";["google","apple","facebook"].forEach(function(k){if(P[k])h+='<a class="btn soc '+k+'" href="/auth/'+k+'" data-go="/auth/'+k+'">'+SOCI[k]+'<span>'+SOCT[k]+'</span></a>'});
+ e.innerHTML=h?'<div class="or"><span>OR</span></div>'+h:"";bind()})}
+function authNotice(){var au=(location.search.match(/[?&]auth=(\w+)/)||[])[1],e=$("err");if(au&&e){e.textContent=au==="unavailable"?"THIS SIGN-IN OPTION IS NOT ACTIVE YET":"SIGN-IN FAILED OR WAS CANCELLED. TRY AGAIN.";try{history.replaceState(null,"",location.pathname)}catch(x){}}}
+// after the provider says "yes", a new person chooses a player name
+function showFinish(pv){window._fp=pv;key="finish";
+ $("view").innerHTML='<h1>ONE LAST STEP</h1><div class="info"><div class="lbl">SIGNED IN WITH '+pv.toUpperCase()+'</div><div class="lbl" style="margin-top:10px">CHOOSE YOUR PLAYER NAME</div></div><div class="pillw"><input id="fn" maxlength="12" autocomplete="nickname" placeholder="player name" aria-label="player name"></div><button class="btn" id="fgo2">CREATE MY PLAYER</button><div class="msg l" id="err"></div><button class="lnk" id="fcx">CANCEL</button>';
+ var go=function(){var b=$("fgo2");b.disabled=true;$("err").textContent="";
+  post("/api/social/finish",{name:$("fn").value}).then(function(x){if(!x)return{ok:false,d:{error:"CONNECTION PROBLEM. TRY AGAIN."}};return x.json().then(function(d){return{ok:x.ok,d:d}},function(){return{ok:false,d:{}}})}).then(function(x){
+   if(x.ok){try{history.replaceState(null,"",location.pathname)}catch(e){}checkAuth()}else{b.disabled=false;$("err").textContent=x.d.error||"TRY AGAIN";play("error")}})};
+ $("fgo2").onclick=go;$("fcx").onclick=function(){showAuth("login")};$("fn").onkeydown=function(e){if(e.key==="Enter")go()};$("fn").setAttribute("dir","auto")}
 function checkAuth(){fetch("/api/me").then(function(r){return r.ok?r.json():null}).then(function(d){
- if(d&&d.user){user=d.user;$("out").hidden=false;if(!es||es.readyState===2)connect()}
- else{user=null;$("out").hidden=true;if(es){es.close();es=null}s=null;showAuth("login")}}).catch(function(){})}
-function showAuth(mode){window._am=mode;key="auth"+mode;var reg=mode==="reg";
+ if(d&&d.user){user=d.user;$("out").hidden=false;if(MODE==="profile"){if(key!=="profile")showProfile()}else if(!es||es.readyState===2)connect()}
+ else{user=null;$("out").hidden=true;if(es){es.close();es=null}s=null;fetch("/api/social/pending").then(function(r){return r.ok?r.json():null}).then(function(pd){if(pd)showFinish(pd.provider);else showAuth(window._am||"login")}).catch(function(){showAuth("login")})}}).catch(function(){})}
+function showAuth(mode){window._am=mode;key="auth"+mode;setTimeout(function(){socialFill();authNotice()},0);var reg=mode==="reg";
  $("view").innerHTML='<h1>'+(reg?"SIGN UP":"LOGIN")+'</h1>'
  +(reg?'<div class="pillw"><input id="an" maxlength="12" autocomplete="nickname" placeholder="player name" aria-label="player name"></div>':'')
  +'<div class="pillw"><input class="raw" id="ae" type="email" maxlength="254" autocomplete="email" placeholder="email" aria-label="email"></div>'
  +'<div class="pillw"><input class="raw" id="ap" type="password" maxlength="200" autocomplete="'+(reg?"new-password":"current-password")+'" placeholder="password" aria-label="password"></div>'
- +'<button class="btn" id="ago">'+(reg?"CREATE ACCOUNT":"LOGIN")+'</button><button class="btn alt" id="agu">PLAY AS GUEST</button><div class="msg l" id="err"></div>'
+ +'<button class="btn" id="ago">'+(reg?"CREATE ACCOUNT":"LOGIN")+'</button><button class="btn alt" id="agu">PLAY AS GUEST</button><div class="msg l" id="err"></div><div id="soc"></div>'
  +'<button class="lnk" id="asw">'+(reg?"HAVE AN ACCOUNT? LOGIN":"NEW PLAYER? CREATE ACCOUNT")+'</button>';
  var run=function(path,o,b){b.disabled=true;$("err").textContent="";
   post(path,o).then(function(x){if(!x)return{ok:false,d:{error:"CONNECTION PROBLEM. TRY AGAIN."}};
